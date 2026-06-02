@@ -1,4 +1,4 @@
-"""Config flow for Conversation Memory."""
+"""Config flow for Voice Assist Recall."""
 
 from __future__ import annotations
 
@@ -33,7 +33,7 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
 
 
 class ConversationMemoryConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for Conversation Memory."""
+    """Handle a config flow for Voice Assist Recall."""
 
     VERSION = 1
 

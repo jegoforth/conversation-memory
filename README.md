@@ -1,6 +1,6 @@
-# Conversation Memory for Home Assistant
+# Voice Assist Recall for Home Assistant
 
-Conversation Memory is a Home Assistant custom integration prototype for giving
+Voice Assist Recall is a Home Assistant custom integration prototype for giving
 Assist a persistent local memory across conversation windows.
 
 ## Problem
@@ -26,7 +26,7 @@ The project is service-first. The reusable memory backend is independent from
 the included demo conversation agent.
 
 Speaker recognition, Assist adapters, and future LLM wrappers should call these
-services instead of depending on the `Conversation Memory` conversation agent:
+services instead of depending on the `Voice Assist Recall` conversation agent:
 
 - `conversation_memory.save_turn`
 - `conversation_memory.recall`
@@ -36,6 +36,7 @@ Each saved turn can include identity and source metadata:
 
 ```yaml
 conversation_id: assist-session-id
+session_id: recall-session-id
 speaker_id: speaker-john
 person_id: person.john
 device_id: voice_satellite_kitchen
@@ -85,7 +86,7 @@ tests/
 
 ### HACS
 
-Conversation Memory can be installed as a HACS custom repository.
+Voice Assist Recall can be installed as a HACS custom repository.
 
 [![Open HACS Repository on My Home Assistant](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=jegoforth&repository=conversation-memory&category=integration)
 
@@ -108,7 +109,7 @@ https://github.com/jegoforth/conversation-memory
 8. Add the integration from:
 
 ```text
-Settings > Devices & services > Add integration > Conversation Memory
+Settings > Devices & services > Add integration > Voice Assist Recall
 ```
 
 ### Manual
@@ -123,7 +124,7 @@ configuration directory:
 Restart Home Assistant, then add the integration from:
 
 ```text
-Settings > Devices & services > Add integration > Conversation Memory
+Settings > Devices & services > Add integration > Voice Assist Recall
 ```
 
 ## Current behavior
@@ -135,7 +136,7 @@ The implementation is intentionally local and provider-neutral:
 - LLM adapters can request prompt-ready memory through
   `conversation_memory.build_context`.
 - Turns can be filtered by `speaker_id`, `person_id`, or `conversation_id`.
-- Every turn handled by the optional `Conversation Memory` conversation agent is
+- Every turn handled by the optional `Voice Assist Recall` conversation agent is
   saved to Home Assistant storage.
 - Recall requests such as "what did we talk about..." or "recall..." search old
   turns by shared topic words.
@@ -149,7 +150,7 @@ prompt, then forwards the user request to the selected AI conversation agent.
 
 ![Built with Codex](https://img.shields.io/badge/Built%20with-Codex-000000?style=for-the-badge&logo=openai&logoColor=white)
 
-Conversation Memory is being developed with Codex as an implementation partner.
+Voice Assist Recall is being developed with Codex as an implementation partner.
 The project is intentionally evolving in small, reviewable versions:
 
 - Start with a provider-neutral memory backend.
@@ -179,8 +180,8 @@ ruff check .
 
 ### 0.1.0
 
-- Initial Conversation Memory custom integration.
-- Added local persistent conversation memory storage.
+- Initial Voice Assist Recall custom integration.
+- Added local persistent Assist recall storage.
 - Added services for `save_turn`, `recall`, and `build_context`.
 - Added optional Assist conversation agent for recall testing.
 - Added memory count sensor.

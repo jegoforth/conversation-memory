@@ -1,4 +1,4 @@
-"""Persistent memory helpers for Conversation Memory."""
+"""Persistent memory helpers for Voice Assist Recall."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 import re
 from typing import Any
+from uuid import uuid4
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant
@@ -49,6 +50,8 @@ STOP_WORDS = {
 class MemoryTurn:
     """A remembered user/assistant exchange."""
 
+    turn_id: str
+    session_id: str
     conversation_id: str
     user_text: str
     assistant_text: str
@@ -62,8 +65,11 @@ class MemoryTurn:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> MemoryTurn:
         """Create a memory turn from stored data."""
+        conversation_id = str(data["conversation_id"])
         return cls(
-            conversation_id=str(data["conversation_id"]),
+            turn_id=str(data.get("turn_id") or uuid4().hex),
+            session_id=str(data.get("session_id") or conversation_id),
+            conversation_id=conversation_id,
             user_text=str(data["user_text"]),
             assistant_text=str(data["assistant_text"]),
             created_at=str(data["created_at"]),
@@ -113,6 +119,7 @@ class ConversationMemoryStore:
         user_text: str,
         assistant_text: str,
         *,
+        session_id: str | None = None,
         speaker_id: str | None = None,
         person_id: str | None = None,
         device_id: str | None = None,
@@ -124,6 +131,8 @@ class ConversationMemoryStore:
 
         self._turns.append(
             MemoryTurn(
+                turn_id=uuid4().hex,
+                session_id=session_id or conversation_id,
                 conversation_id=conversation_id,
                 user_text=user_text,
                 assistant_text=assistant_text,
@@ -148,6 +157,7 @@ class ConversationMemoryStore:
         speaker_id: str | None = None,
         person_id: str | None = None,
         conversation_id: str | None = None,
+        session_id: str | None = None,
     ) -> list[MemoryTurn]:
         """Recall relevant memories for a query."""
         await self.async_load()
@@ -160,6 +170,7 @@ class ConversationMemoryStore:
                 speaker_id=speaker_id,
                 person_id=person_id,
                 conversation_id=conversation_id,
+                session_id=session_id,
             )
         ]
 
@@ -185,6 +196,7 @@ class ConversationMemoryStore:
         speaker_id: str | None = None,
         person_id: str | None = None,
         conversation_id: str | None = None,
+        session_id: str | None = None,
     ) -> str:
         """Build prompt-ready memory context for an AI provider."""
         memories = await self.async_recall(
@@ -193,11 +205,12 @@ class ConversationMemoryStore:
             speaker_id=speaker_id,
             person_id=person_id,
             conversation_id=conversation_id,
+            session_id=session_id,
         )
         if not memories:
             return ""
 
-        lines = ["Relevant previous Home Assistant conversation memory:"]
+        lines = ["Relevant previous Voice Assist Recall context:"]
         for memory in memories:
             lines.append(f"- User: {memory.user_text}")
             lines.append(f"  Assistant: {memory.assistant_text}")
@@ -236,10 +249,13 @@ def _matches_scope(
     speaker_id: str | None,
     person_id: str | None,
     conversation_id: str | None,
+    session_id: str | None,
 ) -> bool:
     """Return true if a memory turn matches optional recall scope."""
     if speaker_id is not None and turn.speaker_id != speaker_id:
         return False
     if person_id is not None and turn.person_id != person_id:
         return False
-    return not (conversation_id is not None and turn.conversation_id != conversation_id)
+    if conversation_id is not None and turn.conversation_id != conversation_id:
+        return False
+    return not (session_id is not None and turn.session_id != session_id)

@@ -1,10 +1,10 @@
 {
-  "title": "Conversation Memory",
+  "title": "Voice Assist Recall",
   "config": {
     "step": {
       "user": {
-        "title": "Set up Conversation Memory",
-        "description": "Create a local memory store for Assist conversations.",
+        "title": "Set up Voice Assist Recall",
+        "description": "Create a local recall store for Assist conversations.",
         "data": {
           "name": "Name",
           "max_turns": "Maximum remembered turns",
@@ -13,7 +13,7 @@
       }
     },
     "abort": {
-      "already_configured": "Conversation Memory is already configured."
+      "already_configured": "Voice Assist Recall is already configured."
     }
   }
 }

@@ -1,4 +1,4 @@
-"""Service handlers for Conversation Memory."""
+"""Service handlers for Voice Assist Recall."""
 
 from __future__ import annotations
 
@@ -20,6 +20,7 @@ from .const import (
     ATTR_PERSON_ID,
     ATTR_QUERY,
     ATTR_ROOM_ID,
+    ATTR_SESSION_ID,
     ATTR_SPEAKER_ID,
     ATTR_USER_TEXT,
     DEFAULT_RECALL_TURNS,
@@ -34,6 +35,7 @@ OPTIONAL_SCOPE_SCHEMA = {
     vol.Optional(ATTR_SPEAKER_ID): cv.string,
     vol.Optional(ATTR_PERSON_ID): cv.string,
     vol.Optional(ATTR_CONVERSATION_ID): cv.string,
+    vol.Optional(ATTR_SESSION_ID): cv.string,
 }
 
 SAVE_TURN_SCHEMA = vol.Schema(
@@ -41,6 +43,7 @@ SAVE_TURN_SCHEMA = vol.Schema(
         vol.Required(ATTR_CONVERSATION_ID): cv.string,
         vol.Required(ATTR_USER_TEXT): cv.string,
         vol.Required(ATTR_ASSISTANT_TEXT): cv.string,
+        vol.Optional(ATTR_SESSION_ID): cv.string,
         vol.Optional(ATTR_SPEAKER_ID): cv.string,
         vol.Optional(ATTR_PERSON_ID): cv.string,
         vol.Optional(ATTR_DEVICE_ID): cv.string,
@@ -63,7 +66,7 @@ BUILD_CONTEXT_SCHEMA = RECALL_SCHEMA
 
 
 async def async_setup_services(hass: HomeAssistant) -> None:
-    """Register Conversation Memory services."""
+    """Register Voice Assist Recall services."""
 
     async def async_save_turn(call: ServiceCall) -> dict[str, Any]:
         store = _get_store(hass)
@@ -71,6 +74,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             conversation_id=call.data[ATTR_CONVERSATION_ID],
             user_text=call.data[ATTR_USER_TEXT],
             assistant_text=call.data[ATTR_ASSISTANT_TEXT],
+            session_id=call.data.get(ATTR_SESSION_ID),
             speaker_id=call.data.get(ATTR_SPEAKER_ID),
             person_id=call.data.get(ATTR_PERSON_ID),
             device_id=call.data.get(ATTR_DEVICE_ID),
@@ -87,6 +91,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             speaker_id=call.data.get(ATTR_SPEAKER_ID),
             person_id=call.data.get(ATTR_PERSON_ID),
             conversation_id=call.data.get(ATTR_CONVERSATION_ID),
+            session_id=call.data.get(ATTR_SESSION_ID),
         )
         return {ATTR_MEMORIES: [memory.as_response_dict() for memory in memories]}
 
@@ -98,6 +103,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             speaker_id=call.data.get(ATTR_SPEAKER_ID),
             person_id=call.data.get(ATTR_PERSON_ID),
             conversation_id=call.data.get(ATTR_CONVERSATION_ID),
+            session_id=call.data.get(ATTR_SESSION_ID),
         )
         return {ATTR_CONTEXT: context}
 
@@ -125,7 +131,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
 
 def async_unload_services(hass: HomeAssistant) -> None:
-    """Unregister Conversation Memory services."""
+    """Unregister Voice Assist Recall services."""
     hass.services.async_remove(DOMAIN, SERVICE_SAVE_TURN)
     hass.services.async_remove(DOMAIN, SERVICE_RECALL)
     hass.services.async_remove(DOMAIN, SERVICE_BUILD_CONTEXT)
@@ -135,6 +141,6 @@ def _get_store(hass: HomeAssistant) -> ConversationMemoryStore:
     """Return the active memory store."""
     stores = hass.data.get(DOMAIN, {})
     if not stores:
-        raise RuntimeError("Conversation Memory is not configured")
+        raise RuntimeError("Voice Assist Recall is not configured")
 
     return next(iter(stores.values()))

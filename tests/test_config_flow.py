@@ -1,4 +1,4 @@
-"""Tests for the Conversation Memory config flow."""
+"""Tests for the Voice Assist Recall config flow."""
 
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -23,16 +23,16 @@ async def test_user_flow(hass):
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
         {
-            CONF_NAME: "Conversation Memory",
+            CONF_NAME: "Voice Assist Recall",
             CONF_MAX_TURNS: 100,
             CONF_RECALL_TURNS: 5,
         },
     )
 
     assert result["type"] == "create_entry"
-    assert result["title"] == "Conversation Memory"
+    assert result["title"] == "Voice Assist Recall"
     assert result["data"] == {
-        CONF_NAME: "Conversation Memory",
+        CONF_NAME: "Voice Assist Recall",
         CONF_MAX_TURNS: 100,
         CONF_RECALL_TURNS: 5,
     }
@@ -42,9 +42,9 @@ async def test_duplicate_name_aborts(hass):
     """Test duplicate entries are rejected."""
     entry = MockConfigEntry(
         domain=DOMAIN,
-        title="Conversation Memory",
+        title="Voice Assist Recall",
         data={
-            CONF_NAME: "Conversation Memory",
+            CONF_NAME: "Voice Assist Recall",
             CONF_MAX_TURNS: 100,
             CONF_RECALL_TURNS: 5,
         },

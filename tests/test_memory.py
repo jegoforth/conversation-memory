@@ -1,8 +1,13 @@
-"""Tests for Conversation Memory storage and recall."""
+"""Tests for Voice Assist Recall storage and recall."""
 
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.conversation_memory.const import CONF_MAX_TURNS, DOMAIN
+from custom_components.conversation_memory.const import (
+    CONF_MAX_TURNS,
+    ATTR_SESSION_ID,
+    ATTR_TURN_ID,
+    DOMAIN,
+)
 from custom_components.conversation_memory.memory import ConversationMemoryStore
 
 
@@ -57,6 +62,9 @@ async def test_recall_can_filter_by_speaker(hass):
     assert len(memories) == 1
     assert memories[0].speaker_id == "speaker-john"
     assert memories[0].person_id == "person.john"
+    assert memories[0].session_id == "conversation-1"
+    assert memories[0].as_response_dict()[ATTR_TURN_ID]
+    assert memories[0].as_response_dict()[ATTR_SESSION_ID] == "conversation-1"
     assert "thermostat" in memories[0].user_text
 
 
@@ -79,6 +87,36 @@ async def test_build_context_formats_recalled_memory(hass):
         speaker_id="speaker-john",
     )
 
-    assert "Relevant previous Home Assistant conversation memory" in context
+    assert "Relevant previous Voice Assist Recall context" in context
     assert "garage door automation" in context
     assert "close at 9 PM" in context
+
+
+async def test_recall_can_filter_by_session(hass):
+    """Test recalled memories can be scoped by session."""
+    store = ConversationMemoryStore(hass, _mock_entry())
+    fake_store = FakeStore()
+    store._store = fake_store
+
+    await store.async_add_turn(
+        conversation_id="conversation-1",
+        session_id="session-alpha",
+        user_text="We discussed the Twilio assistant",
+        assistant_text="The Twilio assistant needs PIN authentication.",
+    )
+    await store.async_add_turn(
+        conversation_id="conversation-2",
+        session_id="session-beta",
+        user_text="We discussed kitchen lights",
+        assistant_text="The kitchen lights should dim at night.",
+    )
+
+    memories = await store.async_recall(
+        "assistant",
+        5,
+        session_id="session-alpha",
+    )
+
+    assert len(memories) == 1
+    assert memories[0].session_id == "session-alpha"
+    assert "Twilio" in memories[0].user_text

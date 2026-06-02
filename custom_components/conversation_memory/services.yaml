@@ -16,6 +16,9 @@ save_turn:
       selector:
         text:
           multiline: true
+    session_id:
+      selector:
+        text:
     speaker_id:
       selector:
         text:
@@ -33,7 +36,7 @@ save_turn:
         text:
 
 recall:
-  name: Recall conversation memory
+  name: Recall previous Assist context
   description: Return relevant remembered turns for a query.
   fields:
     query:
@@ -57,9 +60,12 @@ recall:
     conversation_id:
       selector:
         text:
+    session_id:
+      selector:
+        text:
 
 build_context:
-  name: Build AI memory context
+  name: Build AI recall context
   description: Return prompt-ready context built from relevant remembered turns.
   fields:
     query:
@@ -81,5 +87,8 @@ build_context:
       selector:
         text:
     conversation_id:
+      selector:
+        text:
+    session_id:
       selector:
         text:

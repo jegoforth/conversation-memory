@@ -1,4 +1,4 @@
-"""Conversation Memory for Home Assistant."""
+"""Voice Assist Recall for Home Assistant."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ PLATFORMS: list[Platform] = [Platform.CONVERSATION, Platform.SENSOR]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up Conversation Memory from a config entry."""
+    """Set up Voice Assist Recall from a config entry."""
     hass.data.setdefault(DOMAIN, {})
     if not hass.data[DOMAIN]:
         await async_setup_services(hass)

@@ -1,4 +1,4 @@
-"""Sensor platform for Conversation Memory."""
+"""Sensor platform for Voice Assist Recall."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up Conversation Memory sensors from a config entry."""
+    """Set up Voice Assist Recall sensors from a config entry."""
     store: ConversationMemoryStore = hass.data[DOMAIN][entry.entry_id]
     await store.async_load()
     async_add_entities([ConversationMemoryCountSensor(entry, store)])

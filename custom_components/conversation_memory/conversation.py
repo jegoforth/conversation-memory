@@ -1,4 +1,4 @@
-"""Conversation platform for Conversation Memory."""
+"""Conversation platform for Voice Assist Recall."""
 
 from __future__ import annotations
 
@@ -39,7 +39,7 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up Conversation Memory conversation entities."""
+    """Set up Voice Assist Recall conversation entities."""
     store: ConversationMemoryStore = hass.data[DOMAIN][entry.entry_id]
     await store.async_load()
     async_add_entities([ConversationMemoryAgent(entry, store)])
@@ -113,7 +113,7 @@ def _format_context_response(memories: list[MemoryTurn]) -> str:
     """Format a response for normal conversation turns."""
     if not memories:
         return (
-            "I do not have relevant prior conversation memory yet. "
+            "I do not have relevant prior Voice Assist Recall context yet. "
             "I saved this turn so we can refer back to it later."
         )
 

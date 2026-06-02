@@ -1,4 +1,4 @@
-"""Constants for Conversation Memory."""
+"""Constants for Voice Assist Recall."""
 
 DOMAIN = "conversation_memory"
 STORAGE_KEY = f"{DOMAIN}.memories"
@@ -18,10 +18,12 @@ ATTR_MEMORIES = "memories"
 ATTR_PERSON_ID = "person_id"
 ATTR_QUERY = "query"
 ATTR_ROOM_ID = "room_id"
+ATTR_SESSION_ID = "session_id"
 ATTR_SPEAKER_ID = "speaker_id"
+ATTR_TURN_ID = "turn_id"
 ATTR_USER_TEXT = "user_text"
 
-DEFAULT_NAME = "Conversation Memory"
+DEFAULT_NAME = "Voice Assist Recall"
 DEFAULT_MAX_TURNS = 500
 DEFAULT_RECALL_TURNS = 5
 

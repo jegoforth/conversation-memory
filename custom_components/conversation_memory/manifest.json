@@ -1,6 +1,6 @@
 {
   "domain": "conversation_memory",
-  "name": "Conversation Memory",
+  "name": "Voice Assist Recall",
   "codeowners": ["@jegoforth"],
   "config_flow": true,
   "documentation": "https://github.com/jegoforth/conversation-memory",
