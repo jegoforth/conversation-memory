@@ -26,6 +26,43 @@ It should support workflows such as:
 
 The integration should remain useful beyond one household or one assistant persona. Eric’s private assistant is named Elspeth, but this project should stay generic and community-friendly.
 
+## Cross-Project Architecture Contract
+
+Voice Assist Recall is one layer in a larger Home Assistant voice AI architecture. It must stay independent while remaining easy to compose with the other layers.
+
+The intended project boundaries are:
+
+```text
+House Memory
+  Stable, curated household and profile context.
+
+Voice Assist Recall
+  Historical conversation turns, sessions, summaries, and recall search.
+
+Identity Context
+  Speaker/person/source identification supplied by Home Assistant, speaker
+  recognition, Twilio PINs, companion apps, or other adapters.
+
+Context Engine / Assist Adapter
+  Runtime prompt assembly that decides what stable memory, recalled history,
+  Home Assistant state, and request metadata belong in the current AI prompt.
+```
+
+Voice Assist Recall should not become the stable household profile store. It should store historical conversation data and retrieve relevant prior context.
+
+House Memory should remain the reviewed and curated destination for durable facts. Voice Assist Recall may suggest durable facts discovered from conversations, but those facts should only become stable household/profile memory through an explicit promotion or write path.
+
+Shared integration principles:
+
+- Keep each project installable and useful on its own.
+- Communicate through Home Assistant-native services, sensors, events, or clear adapter contracts instead of hard dependencies where practical.
+- Do not assume one required LLM provider, conversation agent, speaker recognition integration, or assistant persona.
+- Keep private household examples out of public defaults and diagnostics.
+- Keep stable memory concise; keep historical recall searchable and timestamped.
+- Prefer explicit, reviewable memory writes over automatic permanent memory.
+
+When developing Voice Assist Recall, Codex and ChatGPT should protect this boundary: House Memory answers “what should the assistant know?” Voice Assist Recall answers “what did we talk about?” The Context Engine decides “what matters for this request?”
+
 ## Relationship to Other Projects
 
 Voice Assist Recall is one part of a larger Home Assistant voice AI architecture.
