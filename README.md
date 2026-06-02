@@ -49,6 +49,17 @@ This allows speaker recognition to remain a separate project while still giving
 memory recall enough context to answer person-specific or device-specific
 questions.
 
+## Requirements
+
+- Home Assistant with Assist enabled.
+- HACS, if installing through the recommended HACS custom repository path.
+- A Home Assistant version that supports config entries, custom integrations,
+  Assist conversation agents, and service response data.
+- Optional: a speaker recognition integration that can provide `speaker_id` or
+  `person_id` metadata.
+- Optional: an LLM-backed Assist agent or adapter that can call
+  `conversation_memory.build_context` before forwarding a prompt.
+
 ## Structure
 
 ```text
@@ -76,7 +87,9 @@ tests/
 
 Conversation Memory can be installed as a HACS custom repository.
 
-[Open HACS Repository on My](https://my.home-assistant.io/redirect/hacs_repository/?owner=jegoforth&repository=conversation-memory&category=integration)
+[![Open HACS Repository on My Home Assistant](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=jegoforth&repository=conversation-memory&category=integration)
+
+[Open HACS Repository on My Home Assistant](https://my.home-assistant.io/redirect/hacs_repository/?owner=jegoforth&repository=conversation-memory&category=integration)
 
 Manual HACS install:
 
@@ -131,6 +144,21 @@ The implementation is intentionally local and provider-neutral:
 This does not yet wrap an external LLM provider. The next step is an adapter
 that calls `conversation_memory.build_context`, prepends the result to the AI
 prompt, then forwards the user request to the selected AI conversation agent.
+
+## Development Approach
+
+![Built with Codex](https://img.shields.io/badge/Built%20with-Codex-000000?style=for-the-badge&logo=openai&logoColor=white)
+
+Conversation Memory is being developed with Codex as an implementation partner.
+The project is intentionally evolving in small, reviewable versions:
+
+- Start with a provider-neutral memory backend.
+- Keep speaker recognition separate and integrate through metadata.
+- Prefer Home Assistant services as the integration boundary.
+- Treat the included conversation agent as a test/demo surface, not the core
+  dependency.
+- Add provider adapters later, once the memory API is stable enough to avoid
+  coupling the project to one AI backend.
 
 ## Development
 
