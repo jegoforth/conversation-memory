@@ -1,0 +1,62 @@
+"""Tests for the Conversation Memory config flow."""
+
+from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+from custom_components.conversation_memory.const import (
+    CONF_MAX_TURNS,
+    CONF_NAME,
+    CONF_RECALL_TURNS,
+    DOMAIN,
+)
+
+
+async def test_user_flow(hass):
+    """Test creating an entry from the user flow."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": "user"},
+    )
+
+    assert result["type"] == "form"
+    assert result["step_id"] == "user"
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {
+            CONF_NAME: "Conversation Memory",
+            CONF_MAX_TURNS: 100,
+            CONF_RECALL_TURNS: 5,
+        },
+    )
+
+    assert result["type"] == "create_entry"
+    assert result["title"] == "Conversation Memory"
+    assert result["data"] == {
+        CONF_NAME: "Conversation Memory",
+        CONF_MAX_TURNS: 100,
+        CONF_RECALL_TURNS: 5,
+    }
+
+
+async def test_duplicate_name_aborts(hass):
+    """Test duplicate entries are rejected."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Conversation Memory",
+        data={
+            CONF_NAME: "Conversation Memory",
+            CONF_MAX_TURNS: 100,
+            CONF_RECALL_TURNS: 5,
+        },
+        unique_id=DOMAIN,
+    )
+    entry.add_to_hass(hass)
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": "user"},
+        data={CONF_NAME: "Test Integration"},
+    )
+
+    assert result["type"] == "abort"
+    assert result["reason"] == "already_configured"

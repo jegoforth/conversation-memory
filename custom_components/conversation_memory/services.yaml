@@ -1,0 +1,85 @@
+save_turn:
+  name: Save conversation turn
+  description: Save a user and assistant exchange with optional identity metadata.
+  fields:
+    conversation_id:
+      required: true
+      selector:
+        text:
+    user_text:
+      required: true
+      selector:
+        text:
+          multiline: true
+    assistant_text:
+      required: true
+      selector:
+        text:
+          multiline: true
+    speaker_id:
+      selector:
+        text:
+    person_id:
+      selector:
+        text:
+    device_id:
+      selector:
+        text:
+    room_id:
+      selector:
+        text:
+    agent_id:
+      selector:
+        text:
+
+recall:
+  name: Recall conversation memory
+  description: Return relevant remembered turns for a query.
+  fields:
+    query:
+      required: true
+      selector:
+        text:
+          multiline: true
+    limit:
+      default: 5
+      selector:
+        number:
+          min: 1
+          max: 50
+          mode: box
+    speaker_id:
+      selector:
+        text:
+    person_id:
+      selector:
+        text:
+    conversation_id:
+      selector:
+        text:
+
+build_context:
+  name: Build AI memory context
+  description: Return prompt-ready context built from relevant remembered turns.
+  fields:
+    query:
+      required: true
+      selector:
+        text:
+          multiline: true
+    limit:
+      default: 5
+      selector:
+        number:
+          min: 1
+          max: 50
+          mode: box
+    speaker_id:
+      selector:
+        text:
+    person_id:
+      selector:
+        text:
+    conversation_id:
+      selector:
+        text:
