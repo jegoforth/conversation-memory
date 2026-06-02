@@ -70,7 +70,35 @@ tests/
   test_memory.py
 ```
 
-## Local install
+## Installation
+
+### HACS
+
+Conversation Memory can be installed as a HACS custom repository.
+
+[Open HACS Repository on My](https://my.home-assistant.io/redirect/hacs_repository/?owner=jegoforth&repository=conversation-memory&category=integration)
+
+Manual HACS install:
+
+1. Open Home Assistant.
+2. Go to `HACS`.
+3. Open the menu and choose `Custom repositories`.
+4. Add this repository URL:
+
+```text
+https://github.com/jegoforth/conversation-memory
+```
+
+5. Select category `Integration`.
+6. Download the repository in HACS.
+7. Restart Home Assistant.
+8. Add the integration from:
+
+```text
+Settings > Devices & services > Add integration > Conversation Memory
+```
+
+### Manual
 
 Copy or symlink `custom_components/conversation_memory` into your Home Assistant
 configuration directory:
@@ -118,3 +146,15 @@ Run checks:
 pytest
 ruff check .
 ```
+
+## Changelog
+
+### 0.1.0
+
+- Initial Conversation Memory custom integration.
+- Added local persistent conversation memory storage.
+- Added services for `save_turn`, `recall`, and `build_context`.
+- Added optional Assist conversation agent for recall testing.
+- Added memory count sensor.
+- Added speaker/person/conversation metadata fields for future speaker
+  recognition integration.

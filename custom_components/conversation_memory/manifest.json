@@ -1,9 +1,9 @@
 {
   "domain": "conversation_memory",
   "name": "Conversation Memory",
-  "codeowners": ["@your-github-username"],
+  "codeowners": ["@jegoforth"],
   "config_flow": true,
-  "documentation": "https://github.com/your-github-username/conversation_memory",
+  "documentation": "https://github.com/jegoforth/conversation-memory",
   "iot_class": "local_push",
   "requirements": [],
   "version": "0.1.0"
