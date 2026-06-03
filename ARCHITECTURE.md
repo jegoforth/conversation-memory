@@ -166,6 +166,9 @@ Session summary and candidate durable facts are updated later
 
 The current implementation is moving from Phase 1 into Phase 2.
 
+Current household status: Voice Assist Recall is installed and has passed basic
+testing.
+
 The current implementation provides:
 
 - local Home Assistant storage
@@ -332,6 +335,71 @@ Relevant supporting turns:
 - Assistant: “No, keep them separate but composable.”
 ```
 
+## Assist Prompt and Helper Contract
+
+The Home Assistant OpenAI Conversation Agent prompt has a practical character
+limit, so the prompt should stay short and route to helper entities and memory
+sensors rather than embedding long policy text directly.
+
+Home Assistant `input_text` helpers should be treated as short policy/context
+summaries, not durable memory stores and not large policy documents.
+
+Current helper intent:
+
+- `input_text.house_context`: short identity and operating context for the
+  household assistant.
+- `input_text.house_personality`: short style and tone policy.
+- `input_text.house_security_definition`: short privacy, truthfulness, and memory
+  safety policy.
+
+The current Assist prompt should pull together:
+
+- short helper policies from Home Assistant helpers
+- stable memory from `sensor.house_memory_summary` attributes
+- later, only selective prompt-ready recall from Voice Assist Recall
+
+Current prompt pattern:
+
+```jinja2
+You are Elspeth, the voice of the Goforth house.
+
+House context:
+{{ states('input_text.house_context') }}
+
+House personality:
+{{ states('input_text.house_personality') }}
+
+House security definition:
+{{ states('input_text.house_security_definition') }}
+
+Persistent house memory:
+{{ state_attr('sensor.house_memory_summary', 'house') }}
+
+Eric profile:
+{{ state_attr('sensor.house_memory_summary', 'eric') }}
+
+Shelley profile:
+{{ state_attr('sensor.house_memory_summary', 'shelley') }}
+
+Shared household preferences:
+{{ state_attr('sensor.house_memory_summary', 'shared_preferences') }}
+
+Use memory when relevant. Do not invent facts. Keep replies concise, truthful,
+natural, and in plain text.
+```
+
+When Voice Assist Recall exposes a selective, prompt-ready recall sensor or
+service result, the prompt may add a small section such as:
+
+```jinja2
+Relevant conversation recall:
+{{ states('sensor.conversation_memory_relevant_recall') }}
+```
+
+Do not inject raw conversation history into the prompt by default. Recall context
+must be filtered, concise, clearly labeled, and relevant to the current request.
+If recall is not relevant, the prompt should omit it.
+
 ## Storage Direction
 
 The current Home Assistant storage approach is acceptable for the prototype.
@@ -390,6 +458,8 @@ When Codex works on this repository, it should:
 8. Avoid adding embeddings until raw turns and session summaries are stable.
 9. Keep public/community naming generic.
 10. Update this file when architectural decisions change.
+11. Preserve the Assist prompt/helper contract unless Eric intentionally changes
+    it.
 
 ## ChatGPT Working Guidelines
 
@@ -448,15 +518,21 @@ Current status:
 - `build_context` uses session summaries first and supporting raw turns second
 - ranking, stronger limits, and summary/turn balancing still need refinement
 
-### Phase 4: Topic Summaries
+### Phase 4: Prompt-Ready Recall Integration
+
+Expose a selective, concise recall result that an Assist adapter or prompt helper
+can include only when relevant. Do not expose raw history as a default prompt
+block.
+
+### Phase 5: Topic Summaries
 
 Add topic summaries for long-running subjects after session summaries work well.
 
-### Phase 5: Promotion Candidates
+### Phase 6: Promotion Candidates
 
 Add a way for Voice Assist Recall to suggest durable facts that may belong in HA Voice Memory.
 
-### Phase 6: Optional Advanced Search
+### Phase 7: Optional Advanced Search
 
 Only after the above is stable, consider:
 
@@ -477,5 +553,7 @@ Instead:
 3. Let Identity Context provide speaker/person metadata.
 4. Build or adapt a Context Engine that reads from both memory layers.
 5. Allow Voice Assist Recall to suggest durable facts for HA Voice Memory later.
+6. Keep the Assist prompt short by using helper entities and filtered memory
+   sensors/service results.
 
 This preserves clean boundaries while still supporting the overall goal: a Home Assistant voice AI that can know who is speaking, remember durable household context, and refer back to previous conversations naturally.
