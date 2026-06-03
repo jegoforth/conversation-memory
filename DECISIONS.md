@@ -68,3 +68,20 @@ Concern:
 - Long-term history, session summaries, and future search features may justify a
   structured backend such as SQLite. Embeddings should wait until raw turns and
   summaries are stable.
+
+### Optional Conversation Agent
+
+The optional conversation platform caused setup failure during the first HACS
+install test because Home Assistant failed while importing `conversation.py`.
+
+Decision for now:
+
+- Disable `Platform.CONVERSATION` forwarding.
+- Keep the service-first backend and memory count sensor installable.
+- Test `save_turn`, `recall`, `save_session_summary`, `search_sessions`, and
+  `build_context` first.
+
+Concern:
+
+- The demo conversation agent should only be re-enabled after validating the
+  exact conversation entity API against the target Home Assistant version.

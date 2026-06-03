@@ -144,8 +144,8 @@ The implementation is intentionally local and provider-neutral:
   `conversation_id`, or `session_id`.
 - `build_context` prefers matching session summaries before adding supporting
   raw turns.
-- Every turn handled by the optional `Voice Assist Recall` conversation agent is
-  saved to Home Assistant storage.
+- The optional conversation agent is currently disabled while the service-first
+  backend is tested against Home Assistant installs.
 - Recall requests such as "what did we talk about..." or "recall..." search old
   turns by shared topic words.
 - The integration adds a sensor showing the number of remembered turns.
@@ -185,6 +185,12 @@ ruff check .
 ```
 
 ## Changelog
+
+### 0.2.1
+
+- Disabled the optional demo conversation platform to prevent install failure
+  while the service-first backend is tested.
+- Core services remain available for install and service-call testing.
 
 ### 0.2.0
 

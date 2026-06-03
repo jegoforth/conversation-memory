@@ -10,7 +10,7 @@ from .const import DOMAIN
 from .memory import ConversationMemoryStore
 from .services import async_setup_services, async_unload_services
 
-PLATFORMS: list[Platform] = [Platform.CONVERSATION, Platform.SENSOR]
+PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
