@@ -250,6 +250,7 @@ class ConversationMemoryStore:
         *,
         speaker_id: str | None = None,
         person_id: str | None = None,
+        conversation_id: str | None = None,
         session_id: str | None = None,
     ) -> list[MemoryTurn]:
         """Recall relevant memories for a query."""

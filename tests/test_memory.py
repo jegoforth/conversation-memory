@@ -123,6 +123,35 @@ async def test_recall_can_filter_by_session(hass):
     assert "Twilio" in memories[0].user_text
 
 
+async def test_recall_accepts_conversation_id_filter(hass):
+    """Test recalled memories can be scoped by conversation ID."""
+    store = ConversationMemoryStore(hass, _mock_entry())
+    fake_store = FakeStore()
+    store._store = fake_store
+
+    await store.async_add_turn(
+        conversation_id="conversation-alpha",
+        session_id="session-alpha",
+        user_text="We discussed recall filtering",
+        assistant_text="Conversation filters should work.",
+    )
+    await store.async_add_turn(
+        conversation_id="conversation-beta",
+        session_id="session-beta",
+        user_text="We discussed unrelated lights",
+        assistant_text="Lighting filters should not match.",
+    )
+
+    memories = await store.async_recall(
+        "filters",
+        5,
+        conversation_id="conversation-alpha",
+    )
+
+    assert len(memories) == 1
+    assert memories[0].conversation_id == "conversation-alpha"
+
+
 async def test_search_session_summaries(hass):
     """Test session summaries can be searched by topic."""
     store = ConversationMemoryStore(hass, _mock_entry())

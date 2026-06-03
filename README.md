@@ -186,6 +186,11 @@ ruff check .
 
 ## Changelog
 
+### 0.2.2
+
+- Fixed `recall` and `build_context` calls that pass `conversation_id` into raw
+  turn recall.
+
 ### 0.2.1
 
 - Disabled the optional demo conversation platform to prevent install failure
