@@ -56,6 +56,27 @@ Follow-up:
   conversation entity API is validated against the target version.
 - Continue broader testing with real Assist adapter metadata.
 
+### Assist Prompt and Helper Contract
+
+`ARCHITECTURE.md` now defines an Assist prompt/helper contract: keep the OpenAI
+Conversation Agent prompt short, use helper entities for compact policy/context,
+and include Voice Assist Recall output only when it is filtered and relevant.
+
+Decision for now:
+
+- Treat `conversation_memory.build_context` as an explicit service result for an
+  adapter or script, not as an always-on prompt block.
+- Do not inject raw conversation history into the default Assist prompt.
+- Any future `sensor.conversation_memory_relevant_recall` should expose concise,
+  query-relevant text only.
+
+Concern:
+
+- `build_context` currently returns session summaries plus supporting raw turns.
+  This is acceptable for an explicit action call, but it should not be placed
+  directly into a persistent prompt helper without relevance filtering and size
+  limits.
+
 ## 2026-06-02
 
 ### Public Name vs Integration Domain
