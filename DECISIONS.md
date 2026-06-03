@@ -3,6 +3,59 @@
 This file records implementation concerns, tradeoffs, and architectural follow-up
 items for Voice Assist Recall.
 
+## 2026-06-03
+
+### HACS Install Status
+
+Voice Assist Recall was installed through HACS and tested in Home Assistant.
+
+Progress:
+
+- Added HACS metadata with `hacs.json`.
+- Added `issue_tracker` to `manifest.json`.
+- Tagged semantic HACS versions:
+  - `v0.2.0`
+  - `v0.2.1`
+  - `v0.2.2`
+
+Install issues found and fixed:
+
+- HACS initially rejected commit-based version `9cb5be2`; fixed by adding HACS
+  metadata and a semantic version tag.
+- Home Assistant failed setup while importing the optional conversation platform;
+  fixed in `0.2.1` by disabling `Platform.CONVERSATION` forwarding.
+- `conversation_memory.recall` failed because `async_recall()` did not accept
+  `conversation_id`; fixed in `0.2.2`.
+
+### Service Test Results
+
+Version `0.2.2` passed the first service-first test sequence in Home Assistant.
+
+Confirmed working:
+
+- `conversation_memory.save_turn`
+- `conversation_memory.recall`
+- `conversation_memory.save_session_summary`
+- `conversation_memory.search_sessions`
+- `conversation_memory.build_context`
+
+Observed test result:
+
+- Raw turn storage preserved `turn_id`, `session_id`, `conversation_id`,
+  user/assistant text, and identity/source metadata.
+- Raw turn recall worked with `session_id`.
+- Session summary storage preserved title, summary, topics, importance,
+  related turn IDs, and identity/source metadata.
+- Session summary search worked with `session_id`.
+- `build_context` returned session summaries before supporting raw turns.
+
+Follow-up:
+
+- Tighten prompt formatting to reduce extra blank lines in generated context.
+- Keep the optional conversation agent disabled until the exact Home Assistant
+  conversation entity API is validated against the target version.
+- Continue broader testing with real Assist adapter metadata.
+
 ## 2026-06-02
 
 ### Public Name vs Integration Domain
