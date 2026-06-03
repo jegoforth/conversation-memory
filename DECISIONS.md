@@ -36,9 +36,11 @@ Decision for now:
 
 Concern:
 
-- This is not yet a real session model. Phase 2 should add explicit session
-  records with `started_at`, `ended_at`, title, summary, topics, importance, and
-  related turn IDs.
+- Session summaries are now stored, but they are explicitly written by callers
+  through `conversation_memory.save_session_summary`. The integration does not
+  generate summaries automatically yet.
+- A future session model may still need explicit session records separate from
+  summaries if lifecycle tracking becomes important.
 
 ### Build Context
 
@@ -47,14 +49,15 @@ summaries before raw turns.
 
 Decision for now:
 
-- Keep `build_context` raw-turn based for Phase 1.
+- `build_context` searches session summaries first.
+- Raw turns are included as supporting detail after summaries.
 - Label the returned prompt context as Voice Assist Recall context.
 
 Concern:
 
-- Raw transcript context can become too large for voice assistant prompts. Once
-  session summaries exist, `build_context` should search summaries first and use
-  raw turns only as supporting detail.
+- Raw transcript context can still become too large for voice assistant prompts.
+  The next refinement should add stronger limits and ranking between summaries
+  and supporting turns.
 
 ### Storage Backend
 

@@ -66,7 +66,7 @@ recall:
 
 build_context:
   name: Build AI recall context
-  description: Return prompt-ready context built from relevant remembered turns.
+  description: Return prompt-ready context built from session summaries and supporting turns.
   fields:
     query:
       required: true
@@ -87,6 +87,83 @@ build_context:
       selector:
         text:
     conversation_id:
+      selector:
+        text:
+    session_id:
+      selector:
+        text:
+
+save_session_summary:
+  name: Save session summary
+  description: Save or replace a compact summary for a conversation session.
+  fields:
+    session_id:
+      required: true
+      selector:
+        text:
+    summary:
+      required: true
+      selector:
+        text:
+          multiline: true
+    title:
+      selector:
+        text:
+    started_at:
+      selector:
+        text:
+    ended_at:
+      selector:
+        text:
+    topics:
+      selector:
+        object:
+    importance:
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 10
+          mode: slider
+    related_turn_ids:
+      selector:
+        object:
+    speaker_id:
+      selector:
+        text:
+    person_id:
+      selector:
+        text:
+    device_id:
+      selector:
+        text:
+    room_id:
+      selector:
+        text:
+    agent_id:
+      selector:
+        text:
+
+search_sessions:
+  name: Search session summaries
+  description: Return relevant saved session summaries for a query.
+  fields:
+    query:
+      required: true
+      selector:
+        text:
+          multiline: true
+    limit:
+      default: 5
+      selector:
+        number:
+          min: 1
+          max: 50
+          mode: box
+    speaker_id:
+      selector:
+        text:
+    person_id:
       selector:
         text:
     session_id:

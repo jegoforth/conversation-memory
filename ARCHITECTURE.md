@@ -164,9 +164,9 @@ Session summary and candidate durable facts are updated later
 
 ## Current Phase
 
-The current implementation is Phase 1.
+The current implementation is moving from Phase 1 into Phase 2.
 
-Phase 1 provides:
+The current implementation provides:
 
 - local Home Assistant storage
 - saved user/assistant turns
@@ -174,10 +174,13 @@ Phase 1 provides:
 - `save_turn` service
 - `recall` service
 - `build_context` service
+- `save_session_summary` service
+- `search_sessions` service
 - optional demo conversation agent
 - memory count sensor
 
-This is a good foundation, but it is still single-tier turn recall.
+This is a good foundation for two-tier recall. Session summaries are stored and
+searched explicitly, but they are not generated automatically yet.
 
 ## Target Memory Model
 
@@ -423,6 +426,14 @@ Then add:
 - session summary storage
 - tests for session-scoped recall
 
+Current status:
+
+- raw turns include `turn_id` and `session_id`
+- session summary storage exists
+- `save_session_summary` and `search_sessions` services exist
+- `build_context` searches session summaries before raw turns
+- automatic summary generation is not implemented
+
 ### Phase 3: Two-Tier Build Context
 
 Update `build_context` so it can use:
@@ -431,6 +442,11 @@ Update `build_context` so it can use:
 2. supporting raw turns
 
 The result should be concise enough to safely prepend to a voice assistant prompt.
+
+Current status:
+
+- `build_context` uses session summaries first and supporting raw turns second
+- ranking, stronger limits, and summary/turn balancing still need refinement
 
 ### Phase 4: Topic Summaries
 

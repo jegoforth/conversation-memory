@@ -31,6 +31,8 @@ services instead of depending on the `Voice Assist Recall` conversation agent:
 - `conversation_memory.save_turn`
 - `conversation_memory.recall`
 - `conversation_memory.build_context`
+- `conversation_memory.save_session_summary`
+- `conversation_memory.search_sessions`
 
 Each saved turn can include identity and source metadata:
 
@@ -133,9 +135,15 @@ The implementation is intentionally local and provider-neutral:
 
 - Any integration can save turns through `conversation_memory.save_turn`.
 - Any integration can recall turns through `conversation_memory.recall`.
+- Any integration can save compact summaries through
+  `conversation_memory.save_session_summary`.
+- Any integration can search summaries through `conversation_memory.search_sessions`.
 - LLM adapters can request prompt-ready memory through
   `conversation_memory.build_context`.
-- Turns can be filtered by `speaker_id`, `person_id`, or `conversation_id`.
+- Turns and summaries can be filtered by `speaker_id`, `person_id`,
+  `conversation_id`, or `session_id`.
+- `build_context` prefers matching session summaries before adding supporting
+  raw turns.
 - Every turn handled by the optional `Voice Assist Recall` conversation agent is
   saved to Home Assistant storage.
 - Recall requests such as "what did we talk about..." or "recall..." search old
@@ -177,6 +185,14 @@ ruff check .
 ```
 
 ## Changelog
+
+### 0.2.0
+
+- Added session summary storage.
+- Added services for `save_session_summary` and `search_sessions`.
+- Updated `build_context` to prefer relevant session summaries before raw turns.
+- Added summary search by title, summary text, and topics.
+- Added session summary tests and bumped the integration version to `0.2.0`.
 
 ### 0.1.0
 

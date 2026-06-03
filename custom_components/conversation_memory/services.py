@@ -15,19 +15,29 @@ from .const import (
     ATTR_CONTEXT,
     ATTR_CONVERSATION_ID,
     ATTR_DEVICE_ID,
+    ATTR_ENDED_AT,
+    ATTR_IMPORTANCE,
     ATTR_LIMIT,
     ATTR_MEMORIES,
     ATTR_PERSON_ID,
     ATTR_QUERY,
+    ATTR_RELATED_TURN_IDS,
     ATTR_ROOM_ID,
     ATTR_SESSION_ID,
+    ATTR_SESSION_SUMMARIES,
     ATTR_SPEAKER_ID,
+    ATTR_STARTED_AT,
+    ATTR_SUMMARY,
+    ATTR_TITLE,
+    ATTR_TOPICS,
     ATTR_USER_TEXT,
     DEFAULT_RECALL_TURNS,
     DOMAIN,
     SERVICE_BUILD_CONTEXT,
     SERVICE_RECALL,
+    SERVICE_SAVE_SESSION_SUMMARY,
     SERVICE_SAVE_TURN,
+    SERVICE_SEARCH_SESSIONS,
 )
 from .memory import ConversationMemoryStore
 
@@ -63,6 +73,44 @@ RECALL_SCHEMA = vol.Schema(
 )
 
 BUILD_CONTEXT_SCHEMA = RECALL_SCHEMA
+
+SESSION_SCOPE_SCHEMA = {
+    vol.Optional(ATTR_SPEAKER_ID): cv.string,
+    vol.Optional(ATTR_PERSON_ID): cv.string,
+    vol.Optional(ATTR_SESSION_ID): cv.string,
+}
+
+SAVE_SESSION_SUMMARY_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_SESSION_ID): cv.string,
+        vol.Required(ATTR_SUMMARY): cv.string,
+        vol.Optional(ATTR_TITLE): cv.string,
+        vol.Optional(ATTR_STARTED_AT): cv.string,
+        vol.Optional(ATTR_ENDED_AT): cv.string,
+        vol.Optional(ATTR_TOPICS, default=[]): vol.All(cv.ensure_list, [cv.string]),
+        vol.Optional(ATTR_IMPORTANCE, default=0): vol.All(
+            vol.Coerce(int), vol.Range(min=0, max=10)
+        ),
+        vol.Optional(ATTR_RELATED_TURN_IDS, default=[]): vol.All(
+            cv.ensure_list, [cv.string]
+        ),
+        vol.Optional(ATTR_SPEAKER_ID): cv.string,
+        vol.Optional(ATTR_PERSON_ID): cv.string,
+        vol.Optional(ATTR_DEVICE_ID): cv.string,
+        vol.Optional(ATTR_ROOM_ID): cv.string,
+        vol.Optional(ATTR_AGENT_ID): cv.string,
+    }
+)
+
+SEARCH_SESSIONS_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_QUERY): cv.string,
+        vol.Optional(ATTR_LIMIT, default=DEFAULT_RECALL_TURNS): vol.All(
+            vol.Coerce(int), vol.Range(min=1, max=50)
+        ),
+        **SESSION_SCOPE_SCHEMA,
+    }
+)
 
 
 async def async_setup_services(hass: HomeAssistant) -> None:
@@ -107,6 +155,40 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         )
         return {ATTR_CONTEXT: context}
 
+    async def async_save_session_summary(call: ServiceCall) -> dict[str, Any]:
+        store = _get_store(hass)
+        await store.async_save_session_summary(
+            session_id=call.data[ATTR_SESSION_ID],
+            summary=call.data[ATTR_SUMMARY],
+            title=call.data.get(ATTR_TITLE),
+            started_at=call.data.get(ATTR_STARTED_AT),
+            ended_at=call.data.get(ATTR_ENDED_AT),
+            topics=call.data[ATTR_TOPICS],
+            importance=call.data[ATTR_IMPORTANCE],
+            related_turn_ids=call.data[ATTR_RELATED_TURN_IDS],
+            speaker_id=call.data.get(ATTR_SPEAKER_ID),
+            person_id=call.data.get(ATTR_PERSON_ID),
+            device_id=call.data.get(ATTR_DEVICE_ID),
+            room_id=call.data.get(ATTR_ROOM_ID),
+            agent_id=call.data.get(ATTR_AGENT_ID),
+        )
+        return {"saved": True}
+
+    async def async_search_sessions(call: ServiceCall) -> dict[str, Any]:
+        store = _get_store(hass)
+        summaries = await store.async_search_session_summaries(
+            call.data[ATTR_QUERY],
+            call.data[ATTR_LIMIT],
+            speaker_id=call.data.get(ATTR_SPEAKER_ID),
+            person_id=call.data.get(ATTR_PERSON_ID),
+            session_id=call.data.get(ATTR_SESSION_ID),
+        )
+        return {
+            ATTR_SESSION_SUMMARIES: [
+                summary.as_response_dict() for summary in summaries
+            ]
+        }
+
     hass.services.async_register(
         DOMAIN,
         SERVICE_SAVE_TURN,
@@ -128,6 +210,20 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         schema=BUILD_CONTEXT_SCHEMA,
         supports_response=SupportsResponse.ONLY,
     )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SAVE_SESSION_SUMMARY,
+        async_save_session_summary,
+        schema=SAVE_SESSION_SUMMARY_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SEARCH_SESSIONS,
+        async_search_sessions,
+        schema=SEARCH_SESSIONS_SCHEMA,
+        supports_response=SupportsResponse.ONLY,
+    )
 
 
 def async_unload_services(hass: HomeAssistant) -> None:
@@ -135,6 +231,8 @@ def async_unload_services(hass: HomeAssistant) -> None:
     hass.services.async_remove(DOMAIN, SERVICE_SAVE_TURN)
     hass.services.async_remove(DOMAIN, SERVICE_RECALL)
     hass.services.async_remove(DOMAIN, SERVICE_BUILD_CONTEXT)
+    hass.services.async_remove(DOMAIN, SERVICE_SAVE_SESSION_SUMMARY)
+    hass.services.async_remove(DOMAIN, SERVICE_SEARCH_SESSIONS)
 
 
 def _get_store(hass: HomeAssistant) -> ConversationMemoryStore:

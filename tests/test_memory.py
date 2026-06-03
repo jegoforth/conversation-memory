@@ -5,6 +5,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.conversation_memory.const import (
     CONF_MAX_TURNS,
     ATTR_SESSION_ID,
+    ATTR_SUMMARY,
     ATTR_TURN_ID,
     DOMAIN,
 )
@@ -69,7 +70,7 @@ async def test_recall_can_filter_by_speaker(hass):
 
 
 async def test_build_context_formats_recalled_memory(hass):
-    """Test prompt-ready context is built from relevant memories."""
+    """Test prompt-ready context is built from relevant turns."""
     store = ConversationMemoryStore(hass, _mock_entry())
     fake_store = FakeStore()
     store._store = fake_store
@@ -120,3 +121,64 @@ async def test_recall_can_filter_by_session(hass):
     assert len(memories) == 1
     assert memories[0].session_id == "session-alpha"
     assert "Twilio" in memories[0].user_text
+
+
+async def test_search_session_summaries(hass):
+    """Test session summaries can be searched by topic."""
+    store = ConversationMemoryStore(hass, _mock_entry())
+    fake_store = FakeStore()
+    store._store = fake_store
+
+    await store.async_save_session_summary(
+        session_id="session-alpha",
+        title="Twilio assistant planning",
+        summary="Discussed PIN authentication for the Twilio assistant.",
+        topics=["twilio", "authentication"],
+        importance=2,
+        speaker_id="speaker-john",
+    )
+    await store.async_save_session_summary(
+        session_id="session-beta",
+        title="Lighting automation",
+        summary="Discussed dimming kitchen lights at night.",
+        topics=["lighting"],
+        speaker_id="speaker-john",
+    )
+
+    summaries = await store.async_search_session_summaries(
+        "Twilio authentication",
+        5,
+        speaker_id="speaker-john",
+    )
+
+    assert len(summaries) == 1
+    assert summaries[0].session_id == "session-alpha"
+    assert summaries[0].as_response_dict()[ATTR_SUMMARY].startswith("Discussed PIN")
+
+
+async def test_build_context_prefers_session_summaries(hass):
+    """Test prompt-ready context includes summaries before supporting turns."""
+    store = ConversationMemoryStore(hass, _mock_entry())
+    fake_store = FakeStore()
+    store._store = fake_store
+
+    await store.async_add_turn(
+        conversation_id="conversation-1",
+        session_id="session-alpha",
+        user_text="Should the recall project add summaries?",
+        assistant_text="Yes, summaries should come before raw turns.",
+    )
+    await store.async_save_session_summary(
+        session_id="session-alpha",
+        title="Recall architecture",
+        summary="Decided session summaries should be used before raw turns.",
+        topics=["recall", "summaries"],
+    )
+
+    context = await store.async_build_context("recall summaries", 5)
+
+    summary_index = context.index("Session summaries:")
+    turns_index = context.index("Supporting turns:")
+    assert summary_index < turns_index
+    assert "Recall architecture" in context
+    assert "Should the recall project add summaries?" in context

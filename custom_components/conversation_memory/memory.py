@@ -85,6 +85,50 @@ class MemoryTurn:
         return asdict(self)
 
 
+@dataclass(slots=True)
+class SessionSummary:
+    """A compact summary of a conversation session."""
+
+    session_id: str
+    started_at: str
+    ended_at: str
+    title: str
+    summary: str
+    topics: list[str]
+    importance: int
+    related_turn_ids: list[str]
+    speaker_id: str | None = None
+    person_id: str | None = None
+    device_id: str | None = None
+    room_id: str | None = None
+    agent_id: str | None = None
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> SessionSummary:
+        """Create a session summary from stored data."""
+        return cls(
+            session_id=str(data["session_id"]),
+            started_at=str(data["started_at"]),
+            ended_at=str(data["ended_at"]),
+            title=str(data.get("title") or "Untitled session"),
+            summary=str(data["summary"]),
+            topics=[str(topic) for topic in data.get("topics", [])],
+            importance=int(data.get("importance", 0)),
+            related_turn_ids=[
+                str(turn_id) for turn_id in data.get("related_turn_ids", [])
+            ],
+            speaker_id=data.get("speaker_id"),
+            person_id=data.get("person_id"),
+            device_id=data.get("device_id"),
+            room_id=data.get("room_id"),
+            agent_id=data.get("agent_id"),
+        )
+
+    def as_response_dict(self) -> dict[str, Any]:
+        """Return a service-response-safe dictionary."""
+        return asdict(self)
+
+
 class ConversationMemoryStore:
     """Store and recall prior conversation turns."""
 
@@ -96,6 +140,7 @@ class ConversationMemoryStore:
         )
         self._loaded = False
         self._turns: list[MemoryTurn] = []
+        self._session_summaries: list[SessionSummary] = []
         self._listeners: list[CALLBACK_TYPE] = []
 
     @property
@@ -110,7 +155,11 @@ class ConversationMemoryStore:
 
         data = await self._store.async_load()
         turns = data.get("turns", []) if data else []
+        summaries = data.get("session_summaries", []) if data else []
         self._turns = [MemoryTurn.from_dict(turn) for turn in turns]
+        self._session_summaries = [
+            SessionSummary.from_dict(summary) for summary in summaries
+        ]
         self._loaded = True
 
     async def async_add_turn(
@@ -149,6 +198,51 @@ class ConversationMemoryStore:
         self._turns = self._turns[-max_turns:]
         await self._async_save()
 
+    async def async_save_session_summary(
+        self,
+        session_id: str,
+        summary: str,
+        *,
+        title: str | None = None,
+        started_at: str | None = None,
+        ended_at: str | None = None,
+        topics: list[str] | None = None,
+        importance: int = 0,
+        related_turn_ids: list[str] | None = None,
+        speaker_id: str | None = None,
+        person_id: str | None = None,
+        device_id: str | None = None,
+        room_id: str | None = None,
+        agent_id: str | None = None,
+    ) -> None:
+        """Persist or replace a session summary."""
+        await self.async_load()
+
+        now = datetime.now(UTC).isoformat()
+        new_summary = SessionSummary(
+            session_id=session_id,
+            started_at=started_at or now,
+            ended_at=ended_at or now,
+            title=title or "Untitled session",
+            summary=summary,
+            topics=topics or [],
+            importance=importance,
+            related_turn_ids=related_turn_ids or [],
+            speaker_id=speaker_id,
+            person_id=person_id,
+            device_id=device_id,
+            room_id=room_id,
+            agent_id=agent_id,
+        )
+
+        self._session_summaries = [
+            existing
+            for existing in self._session_summaries
+            if existing.session_id != session_id
+        ]
+        self._session_summaries.append(new_summary)
+        await self._async_save()
+
     async def async_recall(
         self,
         query: str,
@@ -156,7 +250,6 @@ class ConversationMemoryStore:
         *,
         speaker_id: str | None = None,
         person_id: str | None = None,
-        conversation_id: str | None = None,
         session_id: str | None = None,
     ) -> list[MemoryTurn]:
         """Recall relevant memories for a query."""
@@ -188,6 +281,48 @@ class ConversationMemoryStore:
         scored_turns.sort(key=lambda item: (item[0], item[1].created_at), reverse=True)
         return [turn for _, turn in scored_turns[:limit]]
 
+    async def async_search_session_summaries(
+        self,
+        query: str,
+        limit: int,
+        *,
+        speaker_id: str | None = None,
+        person_id: str | None = None,
+        session_id: str | None = None,
+    ) -> list[SessionSummary]:
+        """Search relevant session summaries for a query."""
+        await self.async_load()
+
+        candidate_summaries = [
+            summary
+            for summary in self._session_summaries
+            if _matches_summary_scope(
+                summary,
+                speaker_id=speaker_id,
+                person_id=person_id,
+                session_id=session_id,
+            )
+        ]
+
+        query_terms = _terms(query)
+        if not query_terms:
+            candidate_summaries.sort(key=lambda summary: summary.ended_at, reverse=True)
+            return candidate_summaries[:limit]
+
+        scored_summaries: list[tuple[int, SessionSummary]] = []
+        for summary in candidate_summaries:
+            text_terms = _terms(
+                f"{summary.title} {summary.summary} {' '.join(summary.topics)}"
+            )
+            score = len(query_terms & text_terms)
+            if score:
+                scored_summaries.append((score + summary.importance, summary))
+
+        scored_summaries.sort(
+            key=lambda item: (item[0], item[1].ended_at), reverse=True
+        )
+        return [summary for _, summary in scored_summaries[:limit]]
+
     async def async_build_context(
         self,
         query: str,
@@ -199,18 +334,39 @@ class ConversationMemoryStore:
         session_id: str | None = None,
     ) -> str:
         """Build prompt-ready memory context for an AI provider."""
-        memories = await self.async_recall(
+        summaries = await self.async_search_session_summaries(
             query,
             limit,
             speaker_id=speaker_id,
             person_id=person_id,
-            conversation_id=conversation_id,
             session_id=session_id,
         )
-        if not memories:
+        turn_limit = limit if not summaries else max(0, limit - len(summaries))
+        memories = []
+        if turn_limit:
+            memories = await self.async_recall(
+                query,
+                turn_limit,
+                speaker_id=speaker_id,
+                person_id=person_id,
+                conversation_id=conversation_id,
+                session_id=session_id,
+            )
+        if not summaries and not memories:
             return ""
 
         lines = ["Relevant previous Voice Assist Recall context:"]
+        if summaries:
+            lines.append("")
+            lines.append("Session summaries:")
+            for summary in summaries:
+                lines.append(f"- {summary.title}: {summary.summary}")
+                if summary.topics:
+                    lines.append(f"  Topics: {', '.join(summary.topics)}")
+
+        if memories:
+            lines.append("")
+            lines.append("Supporting turns:")
         for memory in memories:
             lines.append(f"- User: {memory.user_text}")
             lines.append(f"  Assistant: {memory.assistant_text}")
@@ -229,7 +385,14 @@ class ConversationMemoryStore:
 
     async def _async_save(self) -> None:
         """Save memories to Home Assistant storage."""
-        await self._store.async_save({"turns": [asdict(turn) for turn in self._turns]})
+        await self._store.async_save(
+            {
+                "turns": [asdict(turn) for turn in self._turns],
+                "session_summaries": [
+                    asdict(summary) for summary in self._session_summaries
+                ],
+            }
+        )
         for listener in self._listeners:
             listener()
 
@@ -259,3 +422,18 @@ def _matches_scope(
     if conversation_id is not None and turn.conversation_id != conversation_id:
         return False
     return not (session_id is not None and turn.session_id != session_id)
+
+
+def _matches_summary_scope(
+    summary: SessionSummary,
+    *,
+    speaker_id: str | None,
+    person_id: str | None,
+    session_id: str | None,
+) -> bool:
+    """Return true if a session summary matches optional recall scope."""
+    if speaker_id is not None and summary.speaker_id != speaker_id:
+        return False
+    if person_id is not None and summary.person_id != person_id:
+        return False
+    return not (session_id is not None and summary.session_id != session_id)
