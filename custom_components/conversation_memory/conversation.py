@@ -4,13 +4,13 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-from homeassistant.components import conversation
 from homeassistant.components.conversation import (
     AssistantContent,
     ChatLog,
     ConversationEntity,
     ConversationEntityFeature,
     ConversationInput,
+    agent,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -70,7 +70,7 @@ class ConversationMemoryAgent(ConversationEntity):
         self,
         user_input: ConversationInput,
         chat_log: ChatLog,
-    ) -> conversation.ConversationResult:
+    ) -> agent.ConversationResult:
         """Handle an incoming conversation message."""
         conversation_id = user_input.conversation_id or uuid4().hex
         recall_limit = self._entry.data.get(CONF_RECALL_TURNS, DEFAULT_RECALL_TURNS)
@@ -96,7 +96,7 @@ class ConversationMemoryAgent(ConversationEntity):
         response = IntentResponse(language=user_input.language)
         response.async_set_speech(speech)
 
-        return conversation.ConversationResult(
+        return agent.ConversationResult(
             conversation_id=conversation_id,
             response=response,
             continue_conversation=True,
