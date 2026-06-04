@@ -436,14 +436,31 @@ The current Home Assistant storage approach is acceptable for the prototype.
 Raw turns and session summaries are pruned by configurable retention windows.
 Topic summaries are intended to be retained indefinitely by default.
 
+Current storage concern:
+
+- The prototype store is scoped by Home Assistant config entry ID.
+- Removing and re-adding the integration may create a new entry ID and leave
+  prior memory data under an old storage key.
+- This is acceptable during early testing, but it is not durable enough for the
+  long-term goal of ChatGPT-like recall across sessions and maintenance events.
+
 As the project grows, consider whether to keep using Home Assistant storage or migrate to a more structured local backend.
 
 Potential path:
 
 1. Home Assistant Store for Phase 1.
-2. Structured internal models for sessions and summaries.
-3. SQLite for larger installations or long-term history.
-4. Optional embeddings/vector search later, not now.
+2. Stable domain-level storage identity or migration layer that can recover
+   older entry-scoped stores.
+3. Structured internal models for sessions and summaries.
+4. SQLite for larger installations or long-term history.
+5. Optional embeddings/vector search later, not now.
+
+Migration requirements:
+
+- Preserve raw turns, session summaries, and future topic summaries.
+- Avoid accidental data merges if multiple config entries exist.
+- Provide backup/export guidance before any storage migration.
+- Add tests that prove old entry-scoped data can be loaded or migrated.
 
 Do not implement embeddings before the basic session and summary model is stable.
 
@@ -568,6 +585,10 @@ Current status:
 ### Phase 5: Topic Summaries
 
 Add topic summaries for long-running subjects after session summaries work well.
+
+Before or alongside topic summaries, design the storage migration path so
+long-lived summaries survive integration remove/re-add and future backend
+changes.
 
 ### Phase 6: Promotion Candidates
 

@@ -125,6 +125,44 @@ Concern:
   call `prepare_recall_context` per request and include the returned context
   only when `relevant` is true.
 
+### Storage Migration Strategy Needed
+
+During `0.4.0` testing, `conversation_memory.search_sessions` returned an empty
+`session_summaries` list after reinstall/update testing. This suggests prior
+test memory was unavailable to the current config entry.
+
+Likely cause:
+
+- The current Home Assistant Store key is scoped by `entry.entry_id`.
+- Removing and re-adding the integration creates a new config entry ID.
+- Memory stored under the old entry ID can become orphaned from the new
+  integration instance.
+
+Decision:
+
+- Treat config-entry-scoped storage as acceptable for the early prototype, but
+  not acceptable for a durable ChatGPT-like recall feature.
+- Plan a storage migration strategy before broader release or before users rely
+  on long-term memories.
+
+Migration planning requirements:
+
+- Choose a stable storage identity that survives remove/re-add where practical.
+- Consider a domain-level storage key for the primary memory store instead of
+  only `entry.entry_id` scoped storage.
+- Add import/migration logic that can detect older entry-scoped stores and move
+  turns and summaries into the new stable store.
+- Avoid data loss when multiple config entries exist.
+- Provide clear backup/export guidance before storage migrations.
+- Add tests for loading old entry-scoped data and preserving raw turns, session
+  summaries, and future topic summaries.
+
+Concern:
+
+- A storage migration should be designed carefully before implementation. Moving
+  too quickly could either ignore orphaned memories or merge data from separate
+  intended instances incorrectly.
+
 ## 2026-06-02
 
 ### Public Name vs Integration Domain
