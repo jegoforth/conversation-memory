@@ -180,7 +180,7 @@ The current implementation provides:
 - `prepare_recall_context` service
 - `save_session_summary` service
 - `search_sessions` service
-- optional demo conversation agent
+- Assist adapter conversation entity
 - memory count sensor
 
 This is a good foundation for two-tier recall. Session summaries are stored and
@@ -191,6 +191,11 @@ service. `conversation_memory.prepare_recall_context` returns whether relevant
 prior context was found, a concise context block, and counts for summaries and
 raw turns used. It is intended for Assist adapters, scripts, or future helper
 sensors that decide whether to add recall to the current AI prompt.
+
+The current Assist adapter can forward a request to a configured downstream
+conversation agent. It calls `prepare_recall_context` for the current user text
+and appends relevant recall through Home Assistant's `extra_system_prompt`
+conversation field before forwarding.
 
 Current retention policy:
 
@@ -303,7 +308,9 @@ Core services should be callable by:
 - future LLM wrappers
 - Twilio or phone-call adapters
 
-The optional conversation agent should remain a demo/test surface, not the required integration path.
+The conversation platform should remain an adapter surface, not the only
+integration path. The service API remains the reusable boundary for scripts,
+automations, other adapters, and speaker-recognition projects.
 
 Current services:
 
@@ -528,7 +535,7 @@ When ChatGPT reviews this project with Eric, it should:
 - Save and recall raw turns.
 - Preserve identity/source metadata.
 - Provide `save_turn`, `recall`, and `build_context` services.
-- Keep demo conversation agent optional.
+- Keep the conversation platform as an adapter surface, not the core dependency.
 
 ### Phase 2: Rename and Session Model
 
@@ -577,10 +584,13 @@ Current status:
 
 - `conversation_memory.prepare_recall_context` exists as a response-only
   service.
-- Automatic adapter injection into an AI conversation agent is not implemented
-  yet.
-- A future adapter or helper should call this service per request and include
-  the returned context only when `relevant` is true.
+- A first-pass Assist adapter exists.
+- The adapter forwards to a configured downstream conversation agent.
+- The adapter includes recall only when `prepare_recall_context` reports
+  `relevant` true.
+- The adapter saves completed user/assistant turns after the downstream response.
+- Testing still needs to validate the adapter against the target Home Assistant
+  version and the selected downstream AI agent.
 
 ### Phase 5: Topic Summaries
 

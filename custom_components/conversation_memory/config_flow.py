@@ -10,11 +10,16 @@ from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResult
 
 from .const import (
+    CONF_ADAPTER_CONTEXT_MAX_LENGTH,
+    CONF_ADAPTER_INCLUDE_TURNS,
     CONF_MAX_TURNS,
     CONF_NAME,
     CONF_RAW_TURN_RETENTION_DAYS,
     CONF_RECALL_TURNS,
     CONF_SESSION_SUMMARY_RETENTION_DAYS,
+    CONF_TARGET_AGENT_ID,
+    DEFAULT_ADAPTER_CONTEXT_MAX_LENGTH,
+    DEFAULT_ADAPTER_INCLUDE_TURNS,
     DEFAULT_MAX_TURNS,
     DEFAULT_NAME,
     DEFAULT_RAW_TURN_RETENTION_DAYS,
@@ -40,6 +45,15 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
             CONF_SESSION_SUMMARY_RETENTION_DAYS,
             default=DEFAULT_SESSION_SUMMARY_RETENTION_DAYS,
         ): vol.All(vol.Coerce(int), vol.Range(min=1, max=3650)),
+        vol.Optional(CONF_TARGET_AGENT_ID, default=""): str,
+        vol.Required(
+            CONF_ADAPTER_INCLUDE_TURNS,
+            default=DEFAULT_ADAPTER_INCLUDE_TURNS,
+        ): bool,
+        vol.Required(
+            CONF_ADAPTER_CONTEXT_MAX_LENGTH,
+            default=DEFAULT_ADAPTER_CONTEXT_MAX_LENGTH,
+        ): vol.All(vol.Coerce(int), vol.Range(min=200, max=4000)),
     }
 )
 
@@ -48,6 +62,13 @@ class ConversationMemoryConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Voice Assist Recall."""
 
     VERSION = 1
+
+    @staticmethod
+    def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> ConversationMemoryOptionsFlow:
+        """Create the options flow."""
+        return ConversationMemoryOptionsFlow(config_entry)
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -69,3 +90,43 @@ class ConversationMemoryConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             title=user_input[CONF_NAME],
             data=user_input,
         )
+
+
+class ConversationMemoryOptionsFlow(config_entries.OptionsFlow):
+    """Handle Voice Assist Recall options."""
+
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        """Initialize options flow."""
+        self._config_entry = config_entry
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Manage integration options."""
+        if user_input is not None:
+            return self.async_create_entry(title="", data=user_input)
+
+        current = {**self._config_entry.data, **self._config_entry.options}
+        schema = vol.Schema(
+            {
+                vol.Optional(
+                    CONF_TARGET_AGENT_ID,
+                    default=current.get(CONF_TARGET_AGENT_ID, ""),
+                ): str,
+                vol.Required(
+                    CONF_ADAPTER_INCLUDE_TURNS,
+                    default=current.get(
+                        CONF_ADAPTER_INCLUDE_TURNS,
+                        DEFAULT_ADAPTER_INCLUDE_TURNS,
+                    ),
+                ): bool,
+                vol.Required(
+                    CONF_ADAPTER_CONTEXT_MAX_LENGTH,
+                    default=current.get(
+                        CONF_ADAPTER_CONTEXT_MAX_LENGTH,
+                        DEFAULT_ADAPTER_CONTEXT_MAX_LENGTH,
+                    ),
+                ): vol.All(vol.Coerce(int), vol.Range(min=200, max=4000)),
+            }
+        )
+        return self.async_show_form(step_id="init", data_schema=schema)

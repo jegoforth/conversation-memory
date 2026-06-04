@@ -18,12 +18,13 @@ Create a local memory layer that can:
 - recall relevant previous turns by topic,
 - attach identity metadata from separate speaker recognition projects,
 - provide services that any Assist agent, automation, or adapter can call,
-- expose an optional conversation agent that can answer explicit recall requests.
+- expose an Assist adapter that can forward enriched requests to a selected AI
+  conversation agent.
 
 ## Architecture
 
 The project is service-first. The reusable memory backend is independent from
-the included demo conversation agent.
+the included Assist adapter.
 
 Speaker recognition, Assist adapters, and future LLM wrappers should call these
 services instead of depending on the `Voice Assist Recall` conversation agent:
@@ -63,6 +64,9 @@ questions.
   `person_id` metadata.
 - Optional: an LLM-backed Assist agent or adapter that can call
   `conversation_memory.build_context` before forwarding a prompt.
+- Recommended for adapter testing: an existing AI conversation agent entity ID
+  to use as the downstream target, such as an OpenAI Conversation or Ollama
+  conversation entity.
 
 ## Structure
 
@@ -115,6 +119,10 @@ https://github.com/jegoforth/conversation-memory
 Settings > Devices & services > Add integration > Voice Assist Recall
 ```
 
+During setup or from the integration options, set `Downstream Assist agent ID`
+to the conversation agent that should receive the enriched request. Leave it
+blank only if you want to test that the adapter loads without forwarding.
+
 ### Manual
 
 Copy or symlink `custom_components/conversation_memory` into your Home Assistant
@@ -155,16 +163,18 @@ The implementation is intentionally local and provider-neutral:
   found.
 - `prepare_recall_context` prefers summaries and only includes raw turns as a
   fallback unless `include_turns` is explicitly enabled.
-- The optional conversation agent is currently disabled while the service-first
-  backend is tested against Home Assistant installs.
+- The Assist adapter is enabled and can forward requests to the configured
+  downstream conversation agent.
+- The adapter passes relevant recall through Home Assistant's
+  `extra_system_prompt` conversation field.
 - Recall requests such as "what did we talk about..." or "recall..." search old
   turns by shared topic words.
 - The integration adds a sensor showing the number of remembered turns.
 
-This does not yet wrap an external LLM provider. To give an AI conversation
-agent access to prior conversations, an adapter, script, or prompt helper must
-call `conversation_memory.prepare_recall_context` for the current request and
-include the returned `context` only when `relevant` is `true`.
+The adapter does not replace the selected AI provider. It prepares recall
+context for the current request, appends it to the downstream agent's extra
+system prompt only when relevant, forwards the request, and saves the completed
+turn.
 
 ## Development Approach
 
@@ -197,6 +207,16 @@ ruff check .
 ```
 
 ## Changelog
+
+### 0.5.0
+
+- Re-enabled the Home Assistant conversation platform as an Assist adapter.
+- Added configurable downstream Assist agent forwarding.
+- Added adapter options for supporting raw turns and context length.
+- Injects relevant recall through `extra_system_prompt` before forwarding to the
+  downstream agent.
+- Saves completed adapter user/assistant turns.
+- Added options-flow and adapter prompt helper tests.
 
 ### 0.4.0
 

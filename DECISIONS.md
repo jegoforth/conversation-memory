@@ -52,8 +52,8 @@ Observed test result:
 Follow-up:
 
 - Tighten prompt formatting to reduce extra blank lines in generated context.
-- Keep the optional conversation agent disabled until the exact Home Assistant
-  conversation entity API is validated against the target version.
+- Superseded in `0.5.0`: the conversation platform is re-enabled as a
+  forwarding adapter, not as the old standalone demo recall agent.
 - Continue broader testing with real Assist adapter metadata.
 
 ### Assist Prompt and Helper Contract
@@ -163,6 +163,31 @@ Concern:
   too quickly could either ignore orphaned memories or merge data from separate
   intended instances incorrectly.
 
+### Assist Adapter First Pass
+
+The next functional gap was that AI agents did not automatically receive Voice
+Assist Recall context. `prepare_recall_context` worked as an action, but the
+selected Assist AI agent had no reason to call it.
+
+Decision:
+
+- Re-enable the conversation platform as an adapter, not as a standalone demo
+  recall bot.
+- Configure a downstream Assist conversation agent ID.
+- For each incoming adapter request:
+  - call `prepare_recall_context`
+  - append relevant recall through `extra_system_prompt`
+  - forward to the downstream agent
+  - save the completed user/assistant turn
+- Keep the service-first backend as the core integration boundary.
+
+Concern:
+
+- The downstream target agent ID must be configured correctly.
+- The adapter must not forward to itself.
+- This needs real Home Assistant testing because conversation platform APIs have
+  changed before and caused install/runtime failures.
+
 ## 2026-06-02
 
 ### Public Name vs Integration Domain
@@ -236,12 +261,13 @@ install test because Home Assistant failed while importing `conversation.py`.
 
 Decision for now:
 
-- Disable `Platform.CONVERSATION` forwarding.
+- Disable `Platform.CONVERSATION` forwarding until the adapter API is corrected.
 - Keep the service-first backend and memory count sensor installable.
 - Test `save_turn`, `recall`, `save_session_summary`, `search_sessions`, and
   `build_context` first.
 
 Concern:
 
-- The demo conversation agent should only be re-enabled after validating the
-  exact conversation entity API against the target Home Assistant version.
+- Superseded in `0.5.0`: the old demo conversation agent was replaced with a
+  forwarding adapter that uses the current conversation API surface. Real Home
+  Assistant testing is still required.

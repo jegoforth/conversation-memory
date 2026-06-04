@@ -5,10 +5,13 @@ STORAGE_KEY = f"{DOMAIN}.memories"
 STORAGE_VERSION = 1
 
 CONF_NAME = "name"
+CONF_ADAPTER_CONTEXT_MAX_LENGTH = "adapter_context_max_length"
+CONF_ADAPTER_INCLUDE_TURNS = "adapter_include_turns"
 CONF_MAX_TURNS = "max_turns"
 CONF_RECALL_TURNS = "recall_turns"
 CONF_RAW_TURN_RETENTION_DAYS = "raw_turn_retention_days"
 CONF_SESSION_SUMMARY_RETENTION_DAYS = "session_summary_retention_days"
+CONF_TARGET_AGENT_ID = "target_agent_id"
 
 ATTR_AGENT_ID = "agent_id"
 ATTR_ASSISTANT_TEXT = "assistant_text"
@@ -39,6 +42,8 @@ ATTR_TURN_ID = "turn_id"
 ATTR_USER_TEXT = "user_text"
 
 DEFAULT_NAME = "Voice Assist Recall"
+DEFAULT_ADAPTER_CONTEXT_MAX_LENGTH = 1200
+DEFAULT_ADAPTER_INCLUDE_TURNS = False
 DEFAULT_MAX_TURNS = 500
 DEFAULT_PREPARED_CONTEXT_MAX_LENGTH = 1200
 DEFAULT_RECALL_TURNS = 5

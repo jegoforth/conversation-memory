@@ -10,12 +10,28 @@
           "max_turns": "Maximum remembered turns",
           "recall_turns": "Turns to recall",
           "raw_turn_retention_days": "Raw turn retention days",
-          "session_summary_retention_days": "Session summary retention days"
+          "session_summary_retention_days": "Session summary retention days",
+          "target_agent_id": "Downstream Assist agent ID",
+          "adapter_include_turns": "Include supporting raw turns in adapter context",
+          "adapter_context_max_length": "Adapter recall context maximum length"
         }
       }
     },
     "abort": {
       "already_configured": "Voice Assist Recall is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Voice Assist Recall adapter options",
+        "description": "Configure the Assist agent that Voice Assist Recall should forward enriched requests to.",
+        "data": {
+          "target_agent_id": "Downstream Assist agent ID",
+          "adapter_include_turns": "Include supporting raw turns in adapter context",
+          "adapter_context_max_length": "Adapter recall context maximum length"
+        }
+      }
     }
   }
 }
