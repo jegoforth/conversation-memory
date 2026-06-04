@@ -13,10 +13,15 @@ from homeassistant.core import CALLBACK_TYPE, HomeAssistant
 from homeassistant.helpers.storage import Store
 
 from .const import (
+    ATTR_CONTEXT,
+    ATTR_RELEVANT,
+    ATTR_SUMMARY_COUNT,
+    ATTR_TURN_COUNT,
     CONF_MAX_TURNS,
     CONF_RAW_TURN_RETENTION_DAYS,
     CONF_SESSION_SUMMARY_RETENTION_DAYS,
     DEFAULT_MAX_TURNS,
+    DEFAULT_PREPARED_CONTEXT_MAX_LENGTH,
     DEFAULT_RAW_TURN_RETENTION_DAYS,
     DEFAULT_SESSION_SUMMARY_RETENTION_DAYS,
     STORAGE_KEY,
@@ -388,6 +393,73 @@ class ConversationMemoryStore:
 
         return "\n".join(lines)
 
+    async def async_prepare_recall_context(
+        self,
+        query: str,
+        limit: int,
+        *,
+        include_turns: bool = False,
+        max_length: int = DEFAULT_PREPARED_CONTEXT_MAX_LENGTH,
+        speaker_id: str | None = None,
+        person_id: str | None = None,
+        conversation_id: str | None = None,
+        session_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Prepare concise recall context for an Assist prompt or adapter."""
+        summaries = await self.async_search_session_summaries(
+            query,
+            limit,
+            speaker_id=speaker_id,
+            person_id=person_id,
+            session_id=session_id,
+        )
+
+        memories: list[MemoryTurn] = []
+        if include_turns:
+            turn_limit = max(0, limit - len(summaries)) if summaries else limit
+        else:
+            turn_limit = 0 if summaries else min(limit, 3)
+
+        if turn_limit:
+            memories = await self.async_recall(
+                query,
+                turn_limit,
+                speaker_id=speaker_id,
+                person_id=person_id,
+                conversation_id=conversation_id,
+                session_id=session_id,
+            )
+
+        if not summaries and not memories:
+            return {
+                ATTR_RELEVANT: False,
+                ATTR_CONTEXT: "",
+                ATTR_SUMMARY_COUNT: 0,
+                ATTR_TURN_COUNT: 0,
+            }
+
+        lines = ["Relevant previous conversation recall:"]
+        for summary in summaries:
+            lines.append(f"- {summary.title}: {summary.summary}")
+            if summary.topics:
+                lines.append(f"  Topics: {', '.join(summary.topics)}")
+
+        if memories:
+            if summaries:
+                lines.append("")
+                lines.append("Supporting details:")
+            for memory in memories:
+                lines.append(f"- User: {memory.user_text}")
+                lines.append(f"  Assistant: {memory.assistant_text}")
+
+        context = _truncate_context("\n".join(lines), max_length)
+        return {
+            ATTR_RELEVANT: True,
+            ATTR_CONTEXT: context,
+            ATTR_SUMMARY_COUNT: len(summaries),
+            ATTR_TURN_COUNT: len(memories),
+        }
+
     def async_add_listener(self, listener: CALLBACK_TYPE) -> CALLBACK_TYPE:
         """Listen for memory changes."""
         self._listeners.append(listener)
@@ -466,6 +538,15 @@ def _parse_datetime(value: str) -> datetime:
     if parsed.tzinfo is None:
         return parsed.replace(tzinfo=UTC)
     return parsed.astimezone(UTC)
+
+
+def _truncate_context(context: str, max_length: int) -> str:
+    """Return context constrained to a prompt-safe character length."""
+    if max_length <= 0 or len(context) <= max_length:
+        return context
+
+    suffix = "\n..."
+    return context[: max_length - len(suffix)].rstrip() + suffix
 
 
 def _matches_scope(

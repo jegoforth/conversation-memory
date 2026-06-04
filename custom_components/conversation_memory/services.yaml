@@ -93,6 +93,46 @@ build_context:
       selector:
         text:
 
+prepare_recall_context:
+  name: Prepare recall context
+  description: Return concise, relevance-tagged context for an Assist adapter or prompt helper.
+  fields:
+    query:
+      required: true
+      selector:
+        text:
+          multiline: true
+    limit:
+      default: 5
+      selector:
+        number:
+          min: 1
+          max: 10
+          mode: box
+    max_length:
+      default: 1200
+      selector:
+        number:
+          min: 200
+          max: 4000
+          mode: box
+    include_turns:
+      default: false
+      selector:
+        boolean:
+    speaker_id:
+      selector:
+        text:
+    person_id:
+      selector:
+        text:
+    conversation_id:
+      selector:
+        text:
+    session_id:
+      selector:
+        text:
+
 save_session_summary:
   name: Save session summary
   description: Save or replace a compact summary for a conversation session.

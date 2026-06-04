@@ -17,10 +17,13 @@ from .const import (
     ATTR_DEVICE_ID,
     ATTR_ENDED_AT,
     ATTR_IMPORTANCE,
+    ATTR_INCLUDE_TURNS,
     ATTR_LIMIT,
+    ATTR_MAX_LENGTH,
     ATTR_MEMORIES,
     ATTR_PERSON_ID,
     ATTR_QUERY,
+    ATTR_RELEVANT,
     ATTR_RELATED_TURN_IDS,
     ATTR_ROOM_ID,
     ATTR_SESSION_ID,
@@ -28,12 +31,16 @@ from .const import (
     ATTR_SPEAKER_ID,
     ATTR_STARTED_AT,
     ATTR_SUMMARY,
+    ATTR_SUMMARY_COUNT,
     ATTR_TITLE,
     ATTR_TOPICS,
+    ATTR_TURN_COUNT,
     ATTR_USER_TEXT,
+    DEFAULT_PREPARED_CONTEXT_MAX_LENGTH,
     DEFAULT_RECALL_TURNS,
     DOMAIN,
     SERVICE_BUILD_CONTEXT,
+    SERVICE_PREPARE_RECALL_CONTEXT,
     SERVICE_RECALL,
     SERVICE_SAVE_SESSION_SUMMARY,
     SERVICE_SAVE_TURN,
@@ -73,6 +80,20 @@ RECALL_SCHEMA = vol.Schema(
 )
 
 BUILD_CONTEXT_SCHEMA = RECALL_SCHEMA
+
+PREPARE_RECALL_CONTEXT_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_QUERY): cv.string,
+        vol.Optional(ATTR_LIMIT, default=DEFAULT_RECALL_TURNS): vol.All(
+            vol.Coerce(int), vol.Range(min=1, max=10)
+        ),
+        vol.Optional(
+            ATTR_MAX_LENGTH, default=DEFAULT_PREPARED_CONTEXT_MAX_LENGTH
+        ): vol.All(vol.Coerce(int), vol.Range(min=200, max=4000)),
+        vol.Optional(ATTR_INCLUDE_TURNS, default=False): cv.boolean,
+        **OPTIONAL_SCOPE_SCHEMA,
+    }
+)
 
 SESSION_SCOPE_SCHEMA = {
     vol.Optional(ATTR_SPEAKER_ID): cv.string,
@@ -155,6 +176,25 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         )
         return {ATTR_CONTEXT: context}
 
+    async def async_prepare_recall_context(call: ServiceCall) -> dict[str, Any]:
+        store = _get_store(hass)
+        prepared_context = await store.async_prepare_recall_context(
+            call.data[ATTR_QUERY],
+            call.data[ATTR_LIMIT],
+            include_turns=call.data[ATTR_INCLUDE_TURNS],
+            max_length=call.data[ATTR_MAX_LENGTH],
+            speaker_id=call.data.get(ATTR_SPEAKER_ID),
+            person_id=call.data.get(ATTR_PERSON_ID),
+            conversation_id=call.data.get(ATTR_CONVERSATION_ID),
+            session_id=call.data.get(ATTR_SESSION_ID),
+        )
+        return {
+            ATTR_RELEVANT: prepared_context[ATTR_RELEVANT],
+            ATTR_CONTEXT: prepared_context[ATTR_CONTEXT],
+            ATTR_SUMMARY_COUNT: prepared_context[ATTR_SUMMARY_COUNT],
+            ATTR_TURN_COUNT: prepared_context[ATTR_TURN_COUNT],
+        }
+
     async def async_save_session_summary(call: ServiceCall) -> dict[str, Any]:
         store = _get_store(hass)
         await store.async_save_session_summary(
@@ -212,6 +252,13 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     )
     hass.services.async_register(
         DOMAIN,
+        SERVICE_PREPARE_RECALL_CONTEXT,
+        async_prepare_recall_context,
+        schema=PREPARE_RECALL_CONTEXT_SCHEMA,
+        supports_response=SupportsResponse.ONLY,
+    )
+    hass.services.async_register(
+        DOMAIN,
         SERVICE_SAVE_SESSION_SUMMARY,
         async_save_session_summary,
         schema=SAVE_SESSION_SUMMARY_SCHEMA,
@@ -231,6 +278,7 @@ def async_unload_services(hass: HomeAssistant) -> None:
     hass.services.async_remove(DOMAIN, SERVICE_SAVE_TURN)
     hass.services.async_remove(DOMAIN, SERVICE_RECALL)
     hass.services.async_remove(DOMAIN, SERVICE_BUILD_CONTEXT)
+    hass.services.async_remove(DOMAIN, SERVICE_PREPARE_RECALL_CONTEXT)
     hass.services.async_remove(DOMAIN, SERVICE_SAVE_SESSION_SUMMARY)
     hass.services.async_remove(DOMAIN, SERVICE_SEARCH_SESSIONS)
 

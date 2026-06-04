@@ -31,6 +31,7 @@ services instead of depending on the `Voice Assist Recall` conversation agent:
 - `conversation_memory.save_turn`
 - `conversation_memory.recall`
 - `conversation_memory.build_context`
+- `conversation_memory.prepare_recall_context`
 - `conversation_memory.save_session_summary`
 - `conversation_memory.search_sessions`
 
@@ -140,6 +141,8 @@ The implementation is intentionally local and provider-neutral:
 - Any integration can search summaries through `conversation_memory.search_sessions`.
 - LLM adapters can request prompt-ready memory through
   `conversation_memory.build_context`.
+- Assist adapters or scripts can request concise, relevance-tagged recall
+  through `conversation_memory.prepare_recall_context`.
 - Turns and summaries can be filtered by `speaker_id`, `person_id`,
   `conversation_id`, or `session_id`.
 - Raw turns are retained for 90 days by default.
@@ -147,15 +150,21 @@ The implementation is intentionally local and provider-neutral:
 - Both retention windows are configurable during setup.
 - `build_context` prefers matching session summaries before adding supporting
   raw turns.
+- `prepare_recall_context` returns `relevant`, `context`, `summary_count`, and
+  `turn_count` so an adapter can include recall only when prior context was
+  found.
+- `prepare_recall_context` prefers summaries and only includes raw turns as a
+  fallback unless `include_turns` is explicitly enabled.
 - The optional conversation agent is currently disabled while the service-first
   backend is tested against Home Assistant installs.
 - Recall requests such as "what did we talk about..." or "recall..." search old
   turns by shared topic words.
 - The integration adds a sensor showing the number of remembered turns.
 
-This does not yet wrap an external LLM provider. The next step is an adapter
-that calls `conversation_memory.build_context`, prepends the result to the AI
-prompt, then forwards the user request to the selected AI conversation agent.
+This does not yet wrap an external LLM provider. To give an AI conversation
+agent access to prior conversations, an adapter, script, or prompt helper must
+call `conversation_memory.prepare_recall_context` for the current request and
+include the returned `context` only when `relevant` is `true`.
 
 ## Development Approach
 
@@ -188,6 +197,17 @@ ruff check .
 ```
 
 ## Changelog
+
+### 0.4.0
+
+- Added `conversation_memory.prepare_recall_context`.
+- Added concise recall responses with `relevant`, `context`, `summary_count`,
+  and `turn_count`.
+- Made prepared recall summary-first, with raw turns used only as a fallback or
+  when `include_turns` is explicitly enabled.
+- Added prompt-safe context length limiting for prepared recall.
+- Added tests for relevant summaries, unrelated queries, raw-turn fallback, and
+  explicit supporting-turn inclusion.
 
 ### 0.3.0
 

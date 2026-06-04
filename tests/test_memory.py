@@ -5,12 +5,16 @@ from datetime import UTC, datetime, timedelta
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.conversation_memory.const import (
+    ATTR_CONTEXT,
+    ATTR_RELEVANT,
+    ATTR_SESSION_ID,
+    ATTR_SUMMARY,
+    ATTR_SUMMARY_COUNT,
+    ATTR_TURN_COUNT,
+    ATTR_TURN_ID,
     CONF_MAX_TURNS,
     CONF_RAW_TURN_RETENTION_DAYS,
     CONF_SESSION_SUMMARY_RETENTION_DAYS,
-    ATTR_SESSION_ID,
-    ATTR_SUMMARY,
-    ATTR_TURN_ID,
     DOMAIN,
 )
 from custom_components.conversation_memory.memory import ConversationMemoryStore
@@ -284,3 +288,107 @@ async def test_retention_prunes_old_turns_and_summaries(hass):
     assert [summary.session_id for summary in summaries] == ["recent-session"]
     assert fake_store.data["turns"][0]["turn_id"] == "recent-turn"
     assert fake_store.data["session_summaries"][0]["session_id"] == "recent-session"
+
+
+async def test_prepare_recall_context_returns_relevant_summary(hass):
+    """Test prepared recall context exposes concise relevant summary metadata."""
+    store = ConversationMemoryStore(hass, _mock_entry())
+    fake_store = FakeStore()
+    store._store = fake_store
+
+    await store.async_save_session_summary(
+        session_id="session-alpha",
+        title="Voice Assist Recall testing",
+        summary="Confirmed the private recall phrase was blue circuit.",
+        topics=["voice assist recall", "testing"],
+        importance=2,
+    )
+
+    prepared_context = await store.async_prepare_recall_context(
+        "What was the private recall phrase?",
+        5,
+    )
+
+    assert prepared_context[ATTR_RELEVANT] is True
+    assert prepared_context[ATTR_SUMMARY_COUNT] == 1
+    assert prepared_context[ATTR_TURN_COUNT] == 0
+    assert "Voice Assist Recall testing" in prepared_context[ATTR_CONTEXT]
+    assert "blue circuit" in prepared_context[ATTR_CONTEXT]
+
+
+async def test_prepare_recall_context_returns_not_relevant_for_unrelated_query(hass):
+    """Test prepared recall context reports no relevance when nothing matches."""
+    store = ConversationMemoryStore(hass, _mock_entry())
+    fake_store = FakeStore()
+    store._store = fake_store
+
+    await store.async_save_session_summary(
+        session_id="session-alpha",
+        title="Lighting automation",
+        summary="Discussed kitchen dimming at night.",
+        topics=["lighting"],
+    )
+
+    prepared_context = await store.async_prepare_recall_context(
+        "What was the private recall phrase?",
+        5,
+    )
+
+    assert prepared_context[ATTR_RELEVANT] is False
+    assert prepared_context[ATTR_CONTEXT] == ""
+    assert prepared_context[ATTR_SUMMARY_COUNT] == 0
+    assert prepared_context[ATTR_TURN_COUNT] == 0
+
+
+async def test_prepare_recall_context_falls_back_to_turns_when_no_summary(hass):
+    """Test prepared recall context can use raw turns when no summary exists."""
+    store = ConversationMemoryStore(hass, _mock_entry())
+    fake_store = FakeStore()
+    store._store = fake_store
+
+    await store.async_add_turn(
+        conversation_id="conversation-alpha",
+        user_text="The project codename is copper bridge.",
+        assistant_text="I will remember copper bridge for recall testing.",
+    )
+
+    prepared_context = await store.async_prepare_recall_context(
+        "What is the project codename?",
+        5,
+    )
+
+    assert prepared_context[ATTR_RELEVANT] is True
+    assert prepared_context[ATTR_SUMMARY_COUNT] == 0
+    assert prepared_context[ATTR_TURN_COUNT] == 1
+    assert "copper bridge" in prepared_context[ATTR_CONTEXT]
+
+
+async def test_prepare_recall_context_can_include_supporting_turns(hass):
+    """Test prepared recall context can include raw turns when explicitly requested."""
+    store = ConversationMemoryStore(hass, _mock_entry())
+    fake_store = FakeStore()
+    store._store = fake_store
+
+    await store.async_add_turn(
+        conversation_id="conversation-alpha",
+        session_id="session-alpha",
+        user_text="We decided session summaries should lead recall.",
+        assistant_text="Supporting turns should stay optional.",
+    )
+    await store.async_save_session_summary(
+        session_id="session-alpha",
+        title="Recall prompt design",
+        summary="Session summaries should lead prompt recall context.",
+        topics=["recall", "prompt"],
+    )
+
+    prepared_context = await store.async_prepare_recall_context(
+        "recall summaries prompt",
+        5,
+        include_turns=True,
+    )
+
+    assert prepared_context[ATTR_SUMMARY_COUNT] == 1
+    assert prepared_context[ATTR_TURN_COUNT] == 1
+    assert "Recall prompt design" in prepared_context[ATTR_CONTEXT]
+    assert "Supporting turns should stay optional" in prepared_context[ATTR_CONTEXT]

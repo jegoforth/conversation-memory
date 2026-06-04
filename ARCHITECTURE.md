@@ -177,6 +177,7 @@ The current implementation provides:
 - `save_turn` service
 - `recall` service
 - `build_context` service
+- `prepare_recall_context` service
 - `save_session_summary` service
 - `search_sessions` service
 - optional demo conversation agent
@@ -184,6 +185,12 @@ The current implementation provides:
 
 This is a good foundation for two-tier recall. Session summaries are stored and
 searched explicitly, but they are not generated automatically yet.
+
+The current implementation also exposes a prompt-safe recall preparation
+service. `conversation_memory.prepare_recall_context` returns whether relevant
+prior context was found, a concise context block, and counts for summaries and
+raw turns used. It is intended for Assist adapters, scripts, or future helper
+sensors that decide whether to add recall to the current AI prompt.
 
 Current retention policy:
 
@@ -304,6 +311,9 @@ Current services:
 conversation_memory.save_turn
 conversation_memory.recall
 conversation_memory.build_context
+conversation_memory.prepare_recall_context
+conversation_memory.save_session_summary
+conversation_memory.search_sessions
 ```
 
 Potential future services:
@@ -313,6 +323,7 @@ conversation_memory.save_session_summary
 conversation_memory.get_session
 conversation_memory.search_sessions
 conversation_memory.build_context
+conversation_memory.prepare_recall_context
 conversation_memory.suggest_memory_candidates
 conversation_memory.mark_candidate_promoted
 ```
@@ -407,6 +418,16 @@ Relevant conversation recall:
 Do not inject raw conversation history into the prompt by default. Recall context
 must be filtered, concise, clearly labeled, and relevant to the current request.
 If recall is not relevant, the prompt should omit it.
+
+Current prompt-safe service behavior:
+
+- `prepare_recall_context` searches session summaries first.
+- If no summary matches, it can fall back to a small number of raw turns.
+- If summaries match, supporting raw turns are omitted unless explicitly
+  requested with `include_turns`.
+- The response includes `relevant`, `context`, `summary_count`, and
+  `turn_count`.
+- The returned context is capped by `max_length`.
 
 ## Storage Direction
 
@@ -534,6 +555,15 @@ Current status:
 Expose a selective, concise recall result that an Assist adapter or prompt helper
 can include only when relevant. Do not expose raw history as a default prompt
 block.
+
+Current status:
+
+- `conversation_memory.prepare_recall_context` exists as a response-only
+  service.
+- Automatic adapter injection into an AI conversation agent is not implemented
+  yet.
+- A future adapter or helper should call this service per request and include
+  the returned context only when `relevant` is true.
 
 ### Phase 5: Topic Summaries
 

@@ -98,6 +98,33 @@ Concern:
   options flow should allow changing retention without removing/re-adding the
   integration.
 
+### Prompt-Safe Recall Preparation
+
+Home Assistant and the existing AI conversation agent do not automatically call
+Voice Assist Recall. The storage and search services work, but AI access needs a
+runtime bridge that prepares relevant prior context for the current request.
+
+Decision:
+
+- Add `conversation_memory.prepare_recall_context` as the next integration
+  boundary.
+- Return structured response metadata:
+  - `relevant`
+  - `context`
+  - `summary_count`
+  - `turn_count`
+- Prefer session summaries over raw turns.
+- Use raw turns only as a fallback when no summary matches, or when the caller
+  explicitly sets `include_turns`.
+- Limit returned context by `max_length`.
+
+Concern:
+
+- This still does not automatically inject memory into the selected AI
+  conversation agent. A future Assist adapter, script, or helper entity must
+  call `prepare_recall_context` per request and include the returned context
+  only when `relevant` is true.
+
 ## 2026-06-02
 
 ### Public Name vs Integration Domain
