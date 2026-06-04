@@ -1,9 +1,13 @@
 """Tests for Voice Assist Recall storage and recall."""
 
+from datetime import UTC, datetime, timedelta
+
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.conversation_memory.const import (
     CONF_MAX_TURNS,
+    CONF_RAW_TURN_RETENTION_DAYS,
+    CONF_SESSION_SUMMARY_RETENTION_DAYS,
     ATTR_SESSION_ID,
     ATTR_SUMMARY,
     ATTR_TURN_ID,
@@ -30,7 +34,14 @@ class FakeStore:
 
 def _mock_entry() -> MockConfigEntry:
     """Create a mock config entry for memory tests."""
-    return MockConfigEntry(domain=DOMAIN, data={CONF_MAX_TURNS: 500})
+    return MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_MAX_TURNS: 500,
+            CONF_RAW_TURN_RETENTION_DAYS: 90,
+            CONF_SESSION_SUMMARY_RETENTION_DAYS: 365,
+        },
+    )
 
 
 async def test_recall_can_filter_by_speaker(hass):
@@ -211,3 +222,65 @@ async def test_build_context_prefers_session_summaries(hass):
     assert summary_index < turns_index
     assert "Recall architecture" in context
     assert "Should the recall project add summaries?" in context
+
+
+async def test_retention_prunes_old_turns_and_summaries(hass):
+    """Test retention removes expired raw turns and session summaries."""
+    store = ConversationMemoryStore(hass, _mock_entry())
+    fake_store = FakeStore()
+    old_turn_date = datetime.now(UTC) - timedelta(days=91)
+    old_summary_date = datetime.now(UTC) - timedelta(days=366)
+    recent_date = datetime.now(UTC) - timedelta(days=1)
+    fake_store.data = {
+        "turns": [
+            {
+                "turn_id": "old-turn",
+                "session_id": "old-session",
+                "conversation_id": "old-conversation",
+                "user_text": "Old raw turn",
+                "assistant_text": "Old raw response",
+                "created_at": old_turn_date.isoformat(),
+            },
+            {
+                "turn_id": "recent-turn",
+                "session_id": "recent-session",
+                "conversation_id": "recent-conversation",
+                "user_text": "Recent raw turn",
+                "assistant_text": "Recent raw response",
+                "created_at": recent_date.isoformat(),
+            },
+        ],
+        "session_summaries": [
+            {
+                "session_id": "old-session",
+                "started_at": old_summary_date.isoformat(),
+                "ended_at": old_summary_date.isoformat(),
+                "title": "Old summary",
+                "summary": "Old session summary",
+                "topics": [],
+                "importance": 0,
+                "related_turn_ids": [],
+            },
+            {
+                "session_id": "recent-session",
+                "started_at": recent_date.isoformat(),
+                "ended_at": recent_date.isoformat(),
+                "title": "Recent summary",
+                "summary": "Recent session summary",
+                "topics": [],
+                "importance": 0,
+                "related_turn_ids": [],
+            },
+        ],
+    }
+    store._store = fake_store
+
+    await store.async_load()
+
+    memories = await store.async_recall("raw", 5)
+    summaries = await store.async_search_session_summaries("summary", 5)
+
+    assert [memory.turn_id for memory in memories] == ["recent-turn"]
+    assert [summary.session_id for summary in summaries] == ["recent-session"]
+    assert fake_store.data["turns"][0]["turn_id"] == "recent-turn"
+    assert fake_store.data["session_summaries"][0]["session_id"] == "recent-session"

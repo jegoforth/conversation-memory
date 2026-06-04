@@ -8,7 +8,9 @@
         "data": {
           "name": "Name",
           "max_turns": "Maximum remembered turns",
-          "recall_turns": "Turns to recall"
+          "recall_turns": "Turns to recall",
+          "raw_turn_retention_days": "Raw turn retention days",
+          "session_summary_retention_days": "Session summary retention days"
         }
       }
     },

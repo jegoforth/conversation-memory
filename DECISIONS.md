@@ -77,6 +77,27 @@ Concern:
   directly into a persistent prompt helper without relevance filtering and size
   limits.
 
+### Retention Policy
+
+The target behavior is ChatGPT-like previous-session recall without retaining
+all raw transcript detail forever.
+
+Decision:
+
+- Raw turns default to 90 days retention.
+- Session summaries default to 365 days retention.
+- Both retention windows are configurable during setup.
+- Expired raw turns and session summaries are pruned when the store loads or
+  writes.
+- Topic summaries are a future tier and should be retained indefinitely unless a
+  later explicit policy changes that.
+
+Concern:
+
+- Config flow currently stores retention settings at setup time only. A future
+  options flow should allow changing retention without removing/re-adding the
+  integration.
+
 ## 2026-06-02
 
 ### Public Name vs Integration Domain

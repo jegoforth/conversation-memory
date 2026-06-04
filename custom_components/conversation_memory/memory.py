@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 import re
 from typing import Any
 from uuid import uuid4
@@ -12,7 +12,16 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant
 from homeassistant.helpers.storage import Store
 
-from .const import CONF_MAX_TURNS, DEFAULT_MAX_TURNS, STORAGE_KEY, STORAGE_VERSION
+from .const import (
+    CONF_MAX_TURNS,
+    CONF_RAW_TURN_RETENTION_DAYS,
+    CONF_SESSION_SUMMARY_RETENTION_DAYS,
+    DEFAULT_MAX_TURNS,
+    DEFAULT_RAW_TURN_RETENTION_DAYS,
+    DEFAULT_SESSION_SUMMARY_RETENTION_DAYS,
+    STORAGE_KEY,
+    STORAGE_VERSION,
+)
 
 WORD_RE = re.compile(r"[a-z0-9_']+", re.IGNORECASE)
 STOP_WORDS = {
@@ -160,7 +169,10 @@ class ConversationMemoryStore:
         self._session_summaries = [
             SessionSummary.from_dict(summary) for summary in summaries
         ]
+        pruned = self._prune_expired_items()
         self._loaded = True
+        if pruned:
+            await self._async_save()
 
     async def async_add_turn(
         self,
@@ -196,6 +208,7 @@ class ConversationMemoryStore:
 
         max_turns = self._entry.data.get(CONF_MAX_TURNS, DEFAULT_MAX_TURNS)
         self._turns = self._turns[-max_turns:]
+        self._prune_expired_items()
         await self._async_save()
 
     async def async_save_session_summary(
@@ -241,6 +254,7 @@ class ConversationMemoryStore:
             if existing.session_id != session_id
         ]
         self._session_summaries.append(new_summary)
+        self._prune_expired_items()
         await self._async_save()
 
     async def async_recall(
@@ -384,6 +398,45 @@ class ConversationMemoryStore:
 
         return remove_listener
 
+    def _prune_expired_items(self) -> bool:
+        """Prune raw turns and session summaries outside retention windows."""
+        now = datetime.now(UTC)
+        raw_cutoff = now - timedelta(days=self._raw_turn_retention_days)
+        summary_cutoff = now - timedelta(days=self._session_summary_retention_days)
+
+        original_turn_count = len(self._turns)
+        original_summary_count = len(self._session_summaries)
+
+        self._turns = [
+            turn for turn in self._turns if _parse_datetime(turn.created_at) >= raw_cutoff
+        ]
+        self._session_summaries = [
+            summary
+            for summary in self._session_summaries
+            if _parse_datetime(summary.ended_at) >= summary_cutoff
+        ]
+
+        return (
+            len(self._turns) != original_turn_count
+            or len(self._session_summaries) != original_summary_count
+        )
+
+    @property
+    def _raw_turn_retention_days(self) -> int:
+        """Return configured raw turn retention days."""
+        return self._entry.data.get(
+            CONF_RAW_TURN_RETENTION_DAYS,
+            DEFAULT_RAW_TURN_RETENTION_DAYS,
+        )
+
+    @property
+    def _session_summary_retention_days(self) -> int:
+        """Return configured session summary retention days."""
+        return self._entry.data.get(
+            CONF_SESSION_SUMMARY_RETENTION_DAYS,
+            DEFAULT_SESSION_SUMMARY_RETENTION_DAYS,
+        )
+
     async def _async_save(self) -> None:
         """Save memories to Home Assistant storage."""
         await self._store.async_save(
@@ -405,6 +458,14 @@ def _terms(text: str) -> set[str]:
         for word in WORD_RE.findall(text)
         if len(word) > 2 and word.lower() not in STOP_WORDS
     }
+
+
+def _parse_datetime(value: str) -> datetime:
+    """Parse stored datetimes as timezone-aware UTC datetimes."""
+    parsed = datetime.fromisoformat(value)
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
 
 
 def _matches_scope(

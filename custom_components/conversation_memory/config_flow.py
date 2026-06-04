@@ -12,10 +12,14 @@ from homeassistant.data_entry_flow import FlowResult
 from .const import (
     CONF_MAX_TURNS,
     CONF_NAME,
+    CONF_RAW_TURN_RETENTION_DAYS,
     CONF_RECALL_TURNS,
+    CONF_SESSION_SUMMARY_RETENTION_DAYS,
     DEFAULT_MAX_TURNS,
     DEFAULT_NAME,
+    DEFAULT_RAW_TURN_RETENTION_DAYS,
     DEFAULT_RECALL_TURNS,
+    DEFAULT_SESSION_SUMMARY_RETENTION_DAYS,
     DOMAIN,
 )
 
@@ -28,6 +32,14 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
         vol.Required(CONF_RECALL_TURNS, default=DEFAULT_RECALL_TURNS): vol.All(
             vol.Coerce(int), vol.Range(min=1, max=50)
         ),
+        vol.Required(
+            CONF_RAW_TURN_RETENTION_DAYS,
+            default=DEFAULT_RAW_TURN_RETENTION_DAYS,
+        ): vol.All(vol.Coerce(int), vol.Range(min=1, max=3650)),
+        vol.Required(
+            CONF_SESSION_SUMMARY_RETENTION_DAYS,
+            default=DEFAULT_SESSION_SUMMARY_RETENTION_DAYS,
+        ): vol.All(vol.Coerce(int), vol.Range(min=1, max=3650)),
     }
 )
 

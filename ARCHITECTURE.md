@@ -185,6 +185,12 @@ The current implementation provides:
 This is a good foundation for two-tier recall. Session summaries are stored and
 searched explicitly, but they are not generated automatically yet.
 
+Current retention policy:
+
+- raw turns: 90 days by default, configurable
+- session summaries: 365 days by default, configurable
+- topic summaries: future tier, indefinite by default
+
 ## Target Memory Model
 
 Voice Assist Recall should evolve toward a two-tier recall model.
@@ -261,6 +267,8 @@ They should summarize long-running topics across many sessions, such as:
 - latency optimization
 
 Topic summaries should be updated carefully and should cite or link back to source sessions where possible.
+Topic summaries should be retained indefinitely by default unless a future
+explicit retention policy changes that.
 
 ### Future Tier: Memory Candidates
 
@@ -403,6 +411,9 @@ If recall is not relevant, the prompt should omit it.
 ## Storage Direction
 
 The current Home Assistant storage approach is acceptable for the prototype.
+
+Raw turns and session summaries are pruned by configurable retention windows.
+Topic summaries are intended to be retained indefinitely by default.
 
 As the project grows, consider whether to keep using Home Assistant storage or migrate to a more structured local backend.
 

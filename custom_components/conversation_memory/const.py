@@ -7,6 +7,8 @@ STORAGE_VERSION = 1
 CONF_NAME = "name"
 CONF_MAX_TURNS = "max_turns"
 CONF_RECALL_TURNS = "recall_turns"
+CONF_RAW_TURN_RETENTION_DAYS = "raw_turn_retention_days"
+CONF_SESSION_SUMMARY_RETENTION_DAYS = "session_summary_retention_days"
 
 ATTR_AGENT_ID = "agent_id"
 ATTR_ASSISTANT_TEXT = "assistant_text"
@@ -34,6 +36,8 @@ ATTR_USER_TEXT = "user_text"
 DEFAULT_NAME = "Voice Assist Recall"
 DEFAULT_MAX_TURNS = 500
 DEFAULT_RECALL_TURNS = 5
+DEFAULT_RAW_TURN_RETENTION_DAYS = 90
+DEFAULT_SESSION_SUMMARY_RETENTION_DAYS = 365
 
 SERVICE_BUILD_CONTEXT = "build_context"
 SERVICE_RECALL = "recall"

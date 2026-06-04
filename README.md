@@ -142,6 +142,9 @@ The implementation is intentionally local and provider-neutral:
   `conversation_memory.build_context`.
 - Turns and summaries can be filtered by `speaker_id`, `person_id`,
   `conversation_id`, or `session_id`.
+- Raw turns are retained for 90 days by default.
+- Session summaries are retained for 365 days by default.
+- Both retention windows are configurable during setup.
 - `build_context` prefers matching session summaries before adding supporting
   raw turns.
 - The optional conversation agent is currently disabled while the service-first
@@ -185,6 +188,15 @@ ruff check .
 ```
 
 ## Changelog
+
+### 0.3.0
+
+- Added configurable retention for raw turns and session summaries.
+- Set default raw turn retention to 90 days.
+- Set default session summary retention to 365 days.
+- Added pruning for expired raw turns and session summaries during store load
+  and writes.
+- Documented topic summaries as a future indefinite-retention tier.
 
 ### 0.2.2
 

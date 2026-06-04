@@ -5,7 +5,9 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.conversation_memory.const import (
     CONF_MAX_TURNS,
     CONF_NAME,
+    CONF_RAW_TURN_RETENTION_DAYS,
     CONF_RECALL_TURNS,
+    CONF_SESSION_SUMMARY_RETENTION_DAYS,
     DOMAIN,
 )
 
@@ -26,6 +28,8 @@ async def test_user_flow(hass):
             CONF_NAME: "Voice Assist Recall",
             CONF_MAX_TURNS: 100,
             CONF_RECALL_TURNS: 5,
+            CONF_RAW_TURN_RETENTION_DAYS: 90,
+            CONF_SESSION_SUMMARY_RETENTION_DAYS: 365,
         },
     )
 
@@ -35,6 +39,8 @@ async def test_user_flow(hass):
         CONF_NAME: "Voice Assist Recall",
         CONF_MAX_TURNS: 100,
         CONF_RECALL_TURNS: 5,
+        CONF_RAW_TURN_RETENTION_DAYS: 90,
+        CONF_SESSION_SUMMARY_RETENTION_DAYS: 365,
     }
 
 
@@ -47,6 +53,8 @@ async def test_duplicate_name_aborts(hass):
             CONF_NAME: "Voice Assist Recall",
             CONF_MAX_TURNS: 100,
             CONF_RECALL_TURNS: 5,
+            CONF_RAW_TURN_RETENTION_DAYS: 90,
+            CONF_SESSION_SUMMARY_RETENTION_DAYS: 365,
         },
         unique_id=DOMAIN,
     )
